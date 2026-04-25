@@ -158,7 +158,45 @@ body:not(.bg-default) .mode-card,
 body:not(.bg-default) .stat,
 body:not(.bg-default) .wrong-list { background: rgba(22,23,32,0.82); backdrop-filter: blur(4px); }
 body:not(.bg-default) #app { background: transparent; }
-/* ランキング */
+/* ── 対戦フィールド ── */
+.field { border-radius: var(--radius); padding: 10px 14px; margin-bottom: 0; }
+.field--me  { background: rgba(108,99,255,0.08); border: 1px solid rgba(108,99,255,0.3); }
+.field--opp { background: rgba(255,77,77,0.08);  border: 1px solid rgba(255,77,77,0.3); }
+.field-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+.field-name { font-size: 14px; font-weight: 700; }
+.field--me  .field-name { color: #8b84ff; }
+.field--opp .field-name { color: #ff6b6b; }
+.field-stats { display: flex; gap: 12px; }
+.field-stat { display: flex; flex-direction: column; align-items: center; }
+.field-stat-label { font-size: 9px; color: var(--text3); }
+.field-stat-val { font-size: 15px; font-weight: 700; font-family: var(--mono); color: var(--text); }
+.field-hp-row { display: flex; align-items: center; gap: 8px; }
+.field-hp-bar-bg { flex: 1; height: 10px; background: var(--bg3); border-radius: 5px; overflow: hidden; }
+.field-hp-bar-fill { height: 100%; border-radius: 5px; transition: width 0.4s ease; }
+.field-hp--me  { background: #6c63ff; width: 100%; }
+.field-hp--opp { background: #ff4d4d; width: 100%; }
+.field-hp-num { font-size: 20px; font-weight: 700; font-family: var(--mono); min-width: 32px; text-align: center; color: var(--text); }
+
+/* ── ダメージプール（中央） ── */
+.dmg-pool { margin: 8px 0; display: flex; justify-content: center; }
+.dmg-pool-inner {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 20px; border-radius: 20px;
+  border: 1.5px solid; min-width: 200px; justify-content: center;
+  transition: background 0.3s, border-color 0.3s;
+}
+.dmg-pool-inner.neutral {
+  background: rgba(255,200,50,0.08); border-color: rgba(255,200,50,0.3); color: #c8a832;
+}
+.dmg-pool-inner.blue {
+  background: rgba(108,99,255,0.15); border-color: rgba(108,99,255,0.5); color: #8b84ff;
+}
+.dmg-pool-inner.red {
+  background: rgba(255,77,77,0.15); border-color: rgba(255,77,77,0.5); color: #ff6b6b;
+}
+.dmg-pool-icon { font-size: 18px; }
+.dmg-pool-val  { font-size: 24px; font-weight: 700; font-family: var(--mono); }
+.dmg-pool-label { font-size: 11px; opacity: 0.8; }
 .rank-row { display: flex; align-items: center; gap: 8px; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 14px; }
 .rank-row:last-child { border-bottom: none; }
 .rank-num { width: 28px; text-align: center; font-weight: 700; font-family: var(--mono); color: var(--text3); font-size: 13px; }
@@ -402,26 +440,48 @@ body:not(.bg-default) #app { background: transparent; }
 
   <!-- MULTI GAME -->
   <div id="screen-multi-game" class="screen">
-    <div class="hp-section">
-      <div class="hp-row hp-row--me">
-        <div class="hp-label" id="mg-my-name">あなた</div>
-        <div class="hp-bar-bg"><div class="hp-bar-fill hp-fill--me" id="mg-my-hp-bar"></div></div>
-        <div class="hp-num" id="mg-my-hp">20</div>
+
+    <!-- 自分フィールド（青） -->
+    <div class="field field--me">
+      <div class="field-header">
+        <span class="field-name" id="mg-my-name">あなた</span>
+        <div class="field-stats">
+          <span class="field-stat"><span class="field-stat-label">正解</span><span class="field-stat-val" id="mg-cor">0</span></span>
+          <span class="field-stat"><span class="field-stat-label">コンボ</span><span class="field-stat-val" id="mg-combo">0</span></span>
+          <span class="field-stat"><span class="field-stat-label">スキップ</span><span class="field-stat-val" id="mg-skip">-</span></span>
+        </div>
       </div>
-      <div class="hp-row hp-row--opp">
-        <div class="hp-label" id="mg-opp-name">相手</div>
-        <div class="hp-bar-bg"><div class="hp-bar-fill hp-fill--opp" id="mg-opp-hp-bar"></div></div>
-        <div class="hp-num" id="mg-opp-hp">20</div>
+      <div class="field-hp-row">
+        <div class="field-hp-bar-bg"><div class="field-hp-bar-fill field-hp--me" id="mg-my-hp-bar"></div></div>
+        <div class="field-hp-num" id="mg-my-hp">20</div>
       </div>
     </div>
-    <div class="dmg-pending neutral" id="mg-dmg-pending">－</div>
-    <div class="stats-row stats-row--4">
-      <div class="stat stat--timer"><div class="stat-label">残り時間</div><div class="stat-value" id="mg-timer">-</div></div>
-      <div class="stat"><div class="stat-label">正解数</div><div class="stat-value" id="mg-cor">0</div></div>
-      <div class="stat"><div class="stat-label">コンボ</div><div class="stat-value" id="mg-combo">0</div></div>
-      <div class="stat"><div class="stat-label">スキップ</div><div class="stat-value" id="mg-skip">-</div></div>
+
+    <!-- ダメージプール（中央） -->
+    <div class="dmg-pool" id="mg-dmg-pool">
+      <div class="dmg-pool-inner neutral" id="mg-dmg-inner">
+        <div class="dmg-pool-icon" id="mg-dmg-icon">⚔</div>
+        <div class="dmg-pool-val" id="mg-dmg-val">0</div>
+        <div class="dmg-pool-label" id="mg-dmg-label">ダメージプール</div>
+      </div>
     </div>
-    <div class="progress-bar"><div class="progress-fill" id="mg-prog"></div></div>
+
+    <!-- 相手フィールド（赤） -->
+    <div class="field field--opp">
+      <div class="field-hp-row">
+        <div class="field-hp-num" id="mg-opp-hp">20</div>
+        <div class="field-hp-bar-bg"><div class="field-hp-bar-fill field-hp--opp" id="mg-opp-hp-bar"></div></div>
+      </div>
+      <div class="field-header" style="justify-content:flex-end;">
+        <div class="field-stats">
+          <span class="field-stat"><span class="field-stat-label">残り</span><span class="field-stat-val timer-val" id="mg-timer">-</span></span>
+        </div>
+        <span class="field-name" id="mg-opp-name">相手</span>
+      </div>
+    </div>
+
+    <!-- 問題エリア -->
+    <div class="progress-bar" style="margin-top:6px;"><div class="progress-fill" id="mg-prog"></div></div>
     <div class="question-card">
       <div class="question-label">化学式はどれ？</div>
       <div class="question-text" id="mg-name"></div>
@@ -762,8 +822,8 @@ function startMultiGame(roomData){
   const oppName=M.oppName||(M.role==='host'?(roomData.guest||'相手'):roomData.host);M.oppName=oppName;
   document.getElementById('mg-my-name').textContent=M.myName;
   document.getElementById('mg-opp-name').textContent=oppName;
-  document.getElementById('mg-dmg-pending').textContent='－';
-  document.getElementById('mg-dmg-pending').className='dmg-pending neutral';
+  document.getElementById('mg-dmg-pending')&&(document.getElementById('mg-dmg-pending').textContent='－');
+  updateDmgUI(0);
   updateMultiHPUI();updateMultiSkipUI();showS('multi-game');multiLoadQ();
   if(M.timeLimit>0){M.gameIv=setInterval(()=>tickMultiTimer(),200);}
   else{document.getElementById('mg-timer').textContent='∞';}
@@ -878,21 +938,33 @@ async function flushDmg(){
 
 // dmgField の値をUIに表示（自分視点で有利/不利を判定）
 function updateDmgUI(net){
-  const el=document.getElementById('mg-dmg-pending');
-  if(net===0){el.textContent='－';el.className='dmg-pending neutral';return;}
-  // 自分が親(host)なら: 負=有利, 正=不利
-  // 自分が子(guest)なら: 正=有利, 負=不利
-  const iWinning=(M.role==='host')?net<0:net>0;
+  const inner=document.getElementById('mg-dmg-inner');
+  const val=document.getElementById('mg-dmg-val');
+  const label=document.getElementById('mg-dmg-label');
+  const icon=document.getElementById('mg-dmg-icon');
+  if(!inner)return;
   const abs=Math.abs(net);
-  if(iWinning){
-    el.textContent=`⚔ 相手に ${abs} ダメージ蓄積中…`;
-    el.className='dmg-pending to-opp';
+  if(net===0){
+    inner.className='dmg-pool-inner neutral';
+    icon.textContent='⚔';val.textContent='0';label.textContent='ダメージプール';
+  } else if(net<0){
+    // 親有利（青）
+    inner.className='dmg-pool-inner blue';
+    icon.textContent='🔵';val.textContent=abs;label.textContent='5秒後清算';
   } else {
-    el.textContent=`💥 自分に ${abs} ダメージ蓄積中…`;
-    el.className='dmg-pending to-me';
+    // 子有利（赤）
+    inner.className='dmg-pool-inner red';
+    icon.textContent='🔴';val.textContent=abs;label.textContent='5秒後清算';
   }
 }
-function updateMultiHPUI(){document.getElementById('mg-my-hp').textContent=Math.max(0,M.myHP);document.getElementById('mg-opp-hp').textContent=Math.max(0,M.oppHP);document.getElementById('mg-my-hp-bar').style.width=Math.max(0,M.myHP)/MAX_HP*100+'%';document.getElementById('mg-opp-hp-bar').style.width=Math.max(0,M.oppHP)/MAX_HP*100+'%';}
+function updateMultiHPUI(){
+  const myHP=Math.max(0,M.myHP), oppHP=Math.max(0,M.oppHP);
+  const initHP=M.initHP||20;
+  document.getElementById('mg-my-hp').textContent=myHP;
+  document.getElementById('mg-opp-hp').textContent=oppHP;
+  document.getElementById('mg-my-hp-bar').style.width=myHP/initHP*100+'%';
+  document.getElementById('mg-opp-hp-bar').style.width=oppHP/initHP*100+'%';
+}
 function updateMultiSkipUI(){const btn=document.getElementById('mg-skip-btn');const sl=M.skipsLeft;if(MULTI_SKIP[M.diff]===0){btn.style.display='none';return;}btn.style.display='';if(sl===Infinity){btn.textContent='スキップ';btn.disabled=false;}else if(sl>0){btn.textContent=`スキップ（残${sl}）`;btn.disabled=false;}else{btn.textContent='スキップ不可';btn.disabled=true;}}
 function endMultiGame(result,reason=''){clearInterval(M.gameIv);if(M.gameUnsub)M.gameUnsub();clearTimeout(M.dmgTimer);M.dmgTimer=null;const rate=M.myAnswered>0?Math.round(M.myCorrect/M.myAnswered*100):0;let medal,title;if(result==='win'){medal='🏆';title='勝利！';}else if(result==='lose'){medal='💀';title='敗北…';}else{medal='🤝';title='引き分け！';}document.getElementById('mr-medal').textContent=medal;document.getElementById('mr-title').textContent=title;document.getElementById('mr-sub').textContent=reason;document.getElementById('mr-cor').textContent=M.myCorrect+'問';document.getElementById('mr-miss').textContent=(M.myMiss||0)+'回';document.getElementById('mr-rate').textContent=rate+'%';document.getElementById('mr-mc').textContent=M.myMaxCombo;showS('multi-result');}
 
