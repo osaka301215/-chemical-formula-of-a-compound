@@ -512,7 +512,7 @@ body:not(.bg-default) #app { background: transparent; }
     <div class="choices-grid" id="mg-choices"></div>
     <div class="action-row">
       <button class="btn btn--skip" id="mg-skip-btn" onclick="multiSkip()">スキップ</button>
-      <button class="btn btn--end" onclick="multiSurrender()">降参</button>
+      <button class="btn btn--end" onclick="multiEnd()">終了</button>
     </div>
   </div>
 
@@ -890,7 +890,17 @@ function timeUpMulti(){if(M.ended)return;M.ended=true;endMultiGame(M.myHP>M.oppH
 function multiLoadQ(){M.qAnswered=false;const q=nextQ(M.diff);M.currentQ=q;document.getElementById('mg-name').textContent=q.name;document.getElementById('mg-bonus').textContent='';const box=document.getElementById('mg-choices');box.innerHTML='';makeChoices(q,M.diff).forEach(ch=>{const b=document.createElement('button');b.className='choice-btn';b.innerHTML=toSubHTML(ch);b.dataset.ans=ch;b.onclick=()=>multiPick(b,ch,q);box.appendChild(b);});}
 function multiPick(btn,chosen,q){if(M.qAnswered||M.ended)return;M.qAnswered=true;M.myAnswered++;const ok=chosen===q.ans;document.querySelectorAll('#mg-choices .choice-btn').forEach(b=>{b.disabled=true;if(b.dataset.ans===q.ans)b.classList.add(ok?'correct':'reveal');});if(ok){btn.classList.add('correct');M.myCorrect++;M.myCombo++;if(M.myCombo>M.myMaxCombo)M.myMaxCombo=M.myCombo;const dmg=M.myCombo>=11?5:M.myCombo>=5?3:M.myCombo>=3?2:0;if(dmg>0)addOutDmg(dmg);}else{btn.classList.add('wrong');M.myCombo=0;M.myMiss=(M.myMiss||0)+1;takeSelfDmg(3);}document.getElementById('mg-cor').textContent=M.myCorrect;document.getElementById('mg-combo').textContent=M.myCombo;setTimeout(()=>multiLoadQ(),700);}
 function multiSkip(){if(M.qAnswered||M.ended)return;if(MULTI_SKIP[M.diff]!==Infinity&&M.skipsLeft<=0)return;if(MULTI_SKIP[M.diff]!==Infinity)M.skipsLeft--;M.qAnswered=true;updateMultiSkipUI();document.querySelectorAll('#mg-choices .choice-btn').forEach(b=>b.disabled=true);document.getElementById('mg-bonus').textContent='スキップ';setTimeout(()=>multiLoadQ(),400);}
-async function multiSurrender(){if(M.ended)return;M.ended=true;clearInterval(M.gameIv);if(M.gameUnsub)M.gameUnsub();clearTimeout(M.dmgTimer);await fb().update(roomRef(M.roomId),{state:'ended'});endMultiGame('lose','降参');}
+async function multiEnd(){
+  if(M.ended)return;
+  M.ended=true;
+  clearInterval(M.gameIv);
+  if(M.gameUnsub)M.gameUnsub();
+  clearTimeout(M.dmgTimer);
+  await fb().update(roomRef(M.roomId),{state:'ended'});
+  // その時点でHP高い方が勝ち
+  const result=M.myHP>M.oppHP?'win':M.myHP<M.oppHP?'lose':'draw';
+  endMultiGame(result,'終了');
+}
 
 // ── ダメージ場システム ──
 // dmgField: 親(host)視点で管理
@@ -917,8 +927,8 @@ async function applyDmgField(delta){
   const next=cur+delta;
   const isFirst=(cur===0&&next!==0);
   await fb().set(fb().ref(fb().db,'rooms/'+M.roomId+'/dmgField'),next);
+  // dmgStartは初回のみ書き込む（カウントダウンリセット防止）
   if(isFirst){
-    // 初回発生時にカウントダウン開始時刻をFirebaseに書き込む
     await fb().set(fb().ref(fb().db,'rooms/'+M.roomId+'/dmgStart'),Date.now());
   }
   if(!M.dmgTimer)M.dmgTimer=setTimeout(()=>flushDmg(),5000);
@@ -926,8 +936,21 @@ async function applyDmgField(delta){
 
 // 正解コンボ攻撃
 function addOutDmg(dmg){ applyDmgField(dmgDelta(dmg,true)); }
-// 不正解自爆
-function takeSelfDmg(dmg){ applyDmgField(dmgDelta(dmg,false)); }
+// 不正解自爆：dmgFieldに乗せるがdmgStartは上書きしない
+async function takeSelfDmg(dmg){
+  if(M.ended)return;
+  const delta=dmgDelta(dmg,false);
+  const snap=await fb().get(fb().ref(fb().db,'rooms/'+M.roomId+'/dmgField'));
+  const cur=(snap.exists()&&snap.val()!==null)?snap.val():0;
+  const next=cur+delta;
+  const isFirst=(cur===0&&next!==0);
+  await fb().set(fb().ref(fb().db,'rooms/'+M.roomId+'/dmgField'),next);
+  // dmgStartは初回のみ書き込む（カウントダウンリセット防止）
+  if(isFirst){
+    await fb().set(fb().ref(fb().db,'rooms/'+M.roomId+'/dmgStart'),Date.now());
+  }
+  if(!M.dmgTimer)M.dmgTimer=setTimeout(()=>flushDmg(),5000);
+}
 
 // 5秒後に清算
 async function flushDmg(){
