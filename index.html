@@ -178,6 +178,29 @@
       <div id="join-error" class="error-msg"></div>
     </div>
 
+    <!-- ===== MULTI READY ===== -->
+    <div id="screen-multi-ready" class="screen">
+      <div class="wait-block">
+        <div class="wait-title" id="ready-title">対戦相手が見つかりました！</div>
+        <div style="display:flex; justify-content:center; gap:24px; margin: 20px 0;">
+          <div style="text-align:center;">
+            <div style="font-size:13px; color:var(--text2); margin-bottom:6px;" id="ready-my-name">あなた</div>
+            <div id="ready-my-status" style="font-size:28px;">⏳</div>
+          </div>
+          <div style="font-size:24px; color:var(--text3); display:flex; align-items:center;">VS</div>
+          <div style="text-align:center;">
+            <div style="font-size:13px; color:var(--text2); margin-bottom:6px;" id="ready-opp-name">相手</div>
+            <div id="ready-opp-status" style="font-size:28px;">⏳</div>
+          </div>
+        </div>
+        <div style="font-size:13px; color:var(--text2); margin-bottom:20px;" id="ready-msg">準備ができたらReadyを押してください</div>
+        <button class="btn btn--primary btn--full" id="ready-btn" onclick="pressReady()" style="font-size:18px; padding:16px;">Ready？</button>
+      </div>
+      <div id="ready-countdown" style="display:none; text-align:center; padding:2rem 0;">
+        <div style="font-size:80px; font-weight:700; color:var(--accent2);" id="countdown-num">3</div>
+      </div>
+    </div>
+
     <!-- ===== MULTI WAIT ===== -->
     <div id="screen-multi-wait" class="screen">
       <div class="wait-block">
