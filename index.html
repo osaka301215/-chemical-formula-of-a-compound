@@ -139,6 +139,25 @@ body { font-family: var(--font); background: var(--bg); color: var(--text); min-
 @keyframes popUp { 0%{opacity:1;transform:translate(-50%,-50%) scale(1)} 100%{opacity:0;transform:translate(-50%,-140%) scale(1.4)} }
 @keyframes countPop { 0%{opacity:0;transform:scale(0.5)} 50%{opacity:1;transform:scale(1.2)} 100%{opacity:1;transform:scale(1)} }
 @media (max-width: 400px) { .stats-row { grid-template-columns: repeat(3, 1fr); } .stat--timer { grid-column: span 2; } .result-stats { grid-template-columns: 1fr 1fr; } }
+/* 背景 */
+body { background-attachment: fixed; background-size: cover; background-position: center; transition: background-image 0.6s ease; }
+body.bg-default { background-color: var(--bg); background-image: none; }
+body.bg-spring  { background-image: linear-gradient(rgba(0,0,0,0.45),rgba(0,0,0,0.55)), url('spr.png'); }
+body.bg-summer  { background-image: linear-gradient(rgba(0,0,0,0.45),rgba(0,0,0,0.55)), url('sum.png'); }
+body.bg-fall    { background-image: linear-gradient(rgba(0,0,0,0.45),rgba(0,0,0,0.55)), url('fall.png'); }
+body.bg-winter  { background-image: linear-gradient(rgba(0,0,0,0.45),rgba(0,0,0,0.55)), url('win.png'); }
+/* 背景選択ボタン */
+.bg-selector { display: flex; justify-content: center; gap: 8px; margin-top: 16px; flex-wrap: wrap; }
+.bg-btn { background: var(--bg2); border: 1px solid var(--border2); border-radius: var(--radius-sm); padding: 6px 12px; font-size: 12px; cursor: pointer; color: var(--text2); font-family: var(--font); transition: border-color 0.15s, color 0.15s; }
+.bg-btn:hover { border-color: var(--accent); color: var(--text); }
+.bg-btn.sel { border-color: var(--accent); color: var(--accent2); font-weight: 700; background: var(--accent-bg); }
+/* 背景ありのときカードを少し透過 */
+body:not(.bg-default) .card,
+body:not(.bg-default) .question-card,
+body:not(.bg-default) .mode-card,
+body:not(.bg-default) .stat,
+body:not(.bg-default) .wrong-list { background: rgba(22,23,32,0.82); backdrop-filter: blur(4px); }
+body:not(.bg-default) #app { background: transparent; }
 </style>
 </head>
 <body>
@@ -160,6 +179,13 @@ body { font-family: var(--font); background: var(--bg); color: var(--text); min-
         <span class="mode-icon">⚔️</span><span class="mode-name">2人対戦</span>
         <span class="mode-desc">別デバイスで対戦<br>HPを削り合え</span>
       </button>
+    </div>
+    <div class="bg-selector">
+      <button class="bg-btn sel" onclick="setBg('default')">🌙 デフォルト</button>
+      <button class="bg-btn" onclick="setBg('spring')">🌸 春</button>
+      <button class="bg-btn" onclick="setBg('summer')">🌻 夏</button>
+      <button class="bg-btn" onclick="setBg('fall')">🍂 秋</button>
+      <button class="bg-btn" onclick="setBg('winter')">❄️ 冬</button>
     </div>
   </div>
 
@@ -355,7 +381,7 @@ body { font-family: var(--font); background: var(--bg); color: var(--text); min-
       <div class="stat"><div class="stat-label">最高コンボ</div><div class="stat-value" id="mr-mc"></div></div>
     </div>
     <div class="btn-row">
-      <button class="btn btn--primary" onclick="showS('multi-top')">もう一度</button>
+      <button class="btn btn--primary" onclick="rematch()">再戦（部屋継続）</button>
       <button class="btn" onclick="showS('mode')">トップへ</button>
     </div>
   </div>
@@ -442,6 +468,16 @@ function gcd(a,b){return b===0?a:gcd(b,a%b);}
 function showS(n){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById('screen-'+n).classList.add('active');}
 function showPop(text){const el=document.createElement('div');el.className='bonus-pop';el.textContent=text;document.body.appendChild(el);setTimeout(()=>el.remove(),950);}
 function goMode(m){showS(m==='solo'?'solo-home':'multi-top');}
+
+function setBg(season){
+  document.body.className='bg-'+season;
+  document.querySelectorAll('.bg-btn').forEach(b=>b.classList.remove('sel'));
+  const map={default:'🌙 デフォルト',spring:'🌸 春',summer:'🌻 夏',fall:'🍂 秋',winter:'❄️ 冬'};
+  document.querySelectorAll('.bg-btn').forEach(b=>{if(b.textContent.trim()===map[season])b.classList.add('sel');});
+  try{localStorage.setItem('bgSeason',season);}catch(e){}
+}
+// 起動時に前回の背景を復元
+(function(){try{const s=localStorage.getItem('bgSeason');if(s)setBg(s);else document.body.classList.add('bg-default');}catch(e){document.body.classList.add('bg-default');}})();
 
 let _queue=[];
 function makeQueue(diff){const ik=diff==='oni'?'hard':diff;return shuffle([...ION[ik],...shuffle(OTHER).slice(0,24)]);}
@@ -595,6 +631,17 @@ function updateMultiHPUI(){document.getElementById('mg-my-hp').textContent=Math.
 function updatePendingUI(){const el=document.getElementById('mg-dmg-pending');const out=M.outPend||0;const inc=M.inPend||0;const net=inc-out;if(out===0&&inc===0){el.textContent='－';el.className='dmg-pending neutral';return;}if(net<0){el.textContent=`⚔ 相手に ${-net} ダメージ蓄積中…`;el.className='dmg-pending to-opp';}else if(net>0){el.textContent=`💥 自分に ${net} ダメージ蓄積中…`;el.className='dmg-pending to-me';}else{el.textContent='⚡ ダメージ相殺！';el.className='dmg-pending cancel';}}
 function updateMultiSkipUI(){const btn=document.getElementById('mg-skip-btn');const sl=M.skipsLeft;if(MULTI_SKIP[M.diff]===0){btn.style.display='none';return;}btn.style.display='';if(sl===Infinity){btn.textContent='スキップ';btn.disabled=false;}else if(sl>0){btn.textContent=`スキップ（残${sl}）`;btn.disabled=false;}else{btn.textContent='スキップ不可';btn.disabled=true;}}
 function endMultiGame(result,reason=''){clearInterval(M.gameIv);if(M.gameUnsub)M.gameUnsub();clearTimeout(M.settleTimeout);const rate=M.myAnswered>0?Math.round(M.myCorrect/M.myAnswered*100):0;let medal,title;if(result==='win'){medal='🏆';title='勝利！';}else if(result==='lose'){medal='💀';title='敗北…';}else{medal='🤝';title='引き分け！';}document.getElementById('mr-medal').textContent=medal;document.getElementById('mr-title').textContent=title;document.getElementById('mr-sub').textContent=reason;document.getElementById('mr-cor').textContent=M.myCorrect+'問';document.getElementById('mr-rate').textContent=rate+'%';document.getElementById('mr-mc').textContent=M.myMaxCombo;showS('multi-result');}
+
+async function rematch(){
+  // ルームをwaiting状態にリセットしてReadyスクリーンへ
+  await fb().update(roomRef(M.roomId),{
+    state:'matched', hostHP:MAX_HP, guestHP:MAX_HP,
+    pendingToHost:0, pendingToGuest:0, pendTimeHost:0, pendTimeGuest:0,
+    gameStart:0, hostReady:false, guestReady:false,
+  });
+  const snap=await fb().get(roomRef(M.roomId));
+  showReadyScreen(snap.val());
+}
 </script>
 </body>
 </html>
