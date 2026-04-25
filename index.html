@@ -647,14 +647,18 @@ function nextQ(diff){if(!_queue.length)_queue=makeQueue(diff);return _queue.shif
 function genWC(q){const{c,cv,a,av}=q,g=gcd(cv,av),cNc=av/g,cNa=cv/g;return[[1,1],[1,2],[1,3],[2,1],[2,2],[2,3],[3,1],[3,2],[3,3]].filter(([nc,na])=>!(nc===cNc&&na===cNa)).slice(0,4).map(([nc,na])=>{const pA=na>1&&a.length>2,pC=nc>1&&c.length>2;return(pC?'('+c+')'+nc:c+(nc===1?'':nc))+(pA?'('+a+')'+na:a+(na===1?'':na));});}
 function makeChoices(q,diff){const ik=diff==='oni'?'hard':diff;const correct=q.ans,used=new Set([correct]);const d=[];if(q.type==='other'){for(const p of shuffle(OTHER)){if(!used.has(p.ans)&&d.length<3){used.add(p.ans);d.push(p.ans);}}}else{const ip=ION[ik];for(const p of shuffle(ip.filter(p=>p.c===q.c&&p.ans!==correct))){if(!used.has(p.ans)&&d.length<2){used.add(p.ans);d.push(p.ans);}}for(const p of shuffle(ip.filter(p=>p.a===q.a&&p.ans!==correct))){if(!used.has(p.ans)&&d.length<3){used.add(p.ans);d.push(p.ans);}}if(d.length<3){for(const w of genWC(q)){if(!used.has(w)&&d.length<3){used.add(w);d.push(w);}}}for(const p of shuffle([...ip,...OTHER])){if(d.length>=3)break;if(!used.has(p.ans)){used.add(p.ans);d.push(p.ans);}}}return shuffle([correct,...d.slice(0,3)]);}
 
+// ── 状態オブジェクトを先に定義 ──
+const SOLO_CFG={easy:{skipMax:Infinity,timeBonus:false,pts:80},normal:{skipMax:3,timeBonus:false,pts:120},hard:{skipMax:1,timeBonus:true,pts:160},oni:{skipMax:0,timeBonus:true,pts:200}};
+const SOLO_TIME=40;
+const S={pendingDiff:'normal'};
+const MAX_HP=20;
+const MULTI_SKIP={easy:Infinity,normal:3,hard:1,oni:0};
+const M={pendingDiff:'normal',pendingTime:90,pendingHP:20};
+
 document.querySelectorAll('[data-d]').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('[data-d]').forEach(x=>x.classList.remove('sel'));b.classList.add('sel');S.pendingDiff=b.dataset.d;}));
 document.querySelectorAll('[data-md]').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('[data-md]').forEach(x=>x.classList.remove('sel'));b.classList.add('sel');M.pendingDiff=b.dataset.md;}));
 document.querySelectorAll('[data-t]').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('[data-t]').forEach(x=>x.classList.remove('sel'));b.classList.add('sel');M.pendingTime=parseInt(b.dataset.t);}));
 document.querySelectorAll('[data-hp]').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('[data-hp]').forEach(x=>x.classList.remove('sel'));b.classList.add('sel');M.pendingHP=parseInt(b.dataset.hp);}));
-
-const SOLO_CFG={easy:{skipMax:Infinity,timeBonus:false,pts:80},normal:{skipMax:3,timeBonus:false,pts:120},hard:{skipMax:1,timeBonus:true,pts:160},oni:{skipMax:0,timeBonus:true,pts:200}};
-const SOLO_TIME=40;
-const S={pendingDiff:'normal'};
 
 function startSolo(){clearInterval(S.iv);_queue=[];S.diff=S.pendingDiff||'normal';S.name=(document.getElementById('solo-name').value.trim()||'プレイヤー').slice(0,10);S.cfg=SOLO_CFG[S.diff];S.score=0;S.correct=0;S.answered=0;S.combo=0;S.maxCombo=0;S.skips=S.cfg.skipMax;S.wrongs=[];S.timeLeft=SOLO_TIME;S.qAnswered=false;showS('solo-game');updateSoloSkipUI();soloLoadQ();soloStartTimer();}
 function soloStartTimer(){clearInterval(S.iv);S.iv=setInterval(()=>{S.timeLeft=Math.max(0,S.timeLeft-0.1);soloUpdateTimer();if(S.timeLeft<=0){clearInterval(S.iv);soloFinish();}},100);}
@@ -666,9 +670,6 @@ function soloSkip(){if(S.qAnswered)return;if(S.cfg.skipMax!==Infinity&&S.skips<=
 function soloEnd(){clearInterval(S.iv);soloFinish();}
 function soloFinish(){clearInterval(S.iv);const rate=S.answered>0?Math.round(S.correct/S.answered*100):0;let medal='🥉',title='もう少し！',sub='';if(S.correct>=15&&rate>=85){medal='🏆';title='完璧！';sub='化学式マスター！';}else if(rate>=75){medal='🥇';title='すばらしい！';}else if(rate>=55){medal='🥈';title='まあまあ！';}document.getElementById('sr-medal').textContent=medal;document.getElementById('sr-title').textContent=title;document.getElementById('sr-sub').textContent=sub;document.getElementById('sr-score').textContent=S.score.toLocaleString();document.getElementById('sr-cor').textContent=S.correct+'問';document.getElementById('sr-rate').textContent=S.answered>0?rate+'%':'-%';document.getElementById('sr-mc').textContent=S.maxCombo;const wl=document.getElementById('sr-wrongs');if(S.wrongs.length>0){let h=`<div class="wrong-list"><div class="wrong-list-title">間違えた問題（${S.wrongs.length}問）</div>`;S.wrongs.slice(0,8).forEach(w=>{h+=`<div class="wrong-row"><span class="wrong-name">${w.q.name}</span><span class="wrong-given">${toSubHTML(w.chosen)}</span><span class="wrong-arrow">→</span><span class="wrong-ans">${toSubHTML(w.q.ans)}</span></div>`;});if(S.wrongs.length>8)h+=`<div style="font-size:12px;color:var(--text3);margin-top:4px;">他 ${S.wrongs.length-8} 問</div>`;h+='</div>';wl.innerHTML=h;}else{wl.innerHTML='';}showS('solo-result');}
 
-const MAX_HP=20;
-const MULTI_SKIP={easy:Infinity,normal:3,hard:1,oni:0};
-const M={pendingDiff:'normal',pendingTime:90,pendingHP:20};
 function fb(){return window._fb;}
 function roomRef(id){return fb().ref(fb().db,'rooms/'+id);}
 function genRoomId(){const c='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';return Array.from({length:6},()=>c[Math.floor(Math.random()*c.length)]).join('');}
