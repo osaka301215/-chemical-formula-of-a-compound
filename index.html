@@ -588,6 +588,8 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 window._fb = { db, ref, set, get, onValue, update, remove };
+// _fbセット完了を通知
+window.dispatchEvent(new Event('fbReady'));
 </script>
 
 <script>
@@ -885,7 +887,7 @@ function startMultiGame(roomData){
   if(M.waitUnsub){M.waitUnsub();M.waitUnsub=null;}
   const hp=roomData.initHP||M.initHP||20;
   _queue=[];M.myHP=hp;M.oppHP=hp;M.myCombo=0;M.myMaxCombo=0;M.myCorrect=0;M.myAnswered=0;M.myMiss=0;
-  M.skipsLeft=MULTI_SKIP[M.diff];M.dmgTimer=null;M.cdIv=null;M.localDmgStart=0;M.latestNet=0;
+  M.skipsLeft=MULTI_SKIP[M.diff];M.dmgTimer=null;M.cdIv=null;M.localDmgStart=0;M.latestNet=0;M.cpuIv=null;
   M.ended=false;M.qAnswered=false;M.gameStart=roomData.gameStart||Date.now();
   const oppName=M.oppName||(M.role==='host'?(roomData.guest||'相手'):roomData.host);M.oppName=oppName;
   document.getElementById('mg-my-name').textContent=M.myName;
@@ -1155,7 +1157,7 @@ function updateMultiHPUI(){
   document.getElementById('mg-opp-hp-bar').style.width=oppHP/initHP*100+'%';
 }
 function updateMultiSkipUI(){const btn=document.getElementById('mg-skip-btn');const sl=M.skipsLeft;if(MULTI_SKIP[M.diff]===0){btn.style.display='none';return;}btn.style.display='';if(sl===Infinity){btn.textContent='スキップ';btn.disabled=false;}else if(sl>0){btn.textContent=`スキップ（残${sl}）`;btn.disabled=false;}else{btn.textContent='スキップ不可';btn.disabled=true;}}
-function endMultiGame(result,reason=''){clearInterval(M.gameIv);clearInterval(M.cdIv);M.cdIv=null;if(M.gameUnsub)M.gameUnsub();clearTimeout(M.dmgTimer);M.dmgTimer=null;const rate=M.myAnswered>0?Math.round(M.myCorrect/M.myAnswered*100):0;let medal,title;if(result==='win'){medal='🏆';title='勝利！';}else if(result==='lose'){medal='💀';title='敗北…';}else{medal='🤝';title='引き分け！';}document.getElementById('mr-medal').textContent=medal;document.getElementById('mr-title').textContent=title;document.getElementById('mr-sub').textContent=reason;document.getElementById('mr-cor').textContent=M.myCorrect+'問';document.getElementById('mr-miss').textContent=(M.myMiss||0)+'回';document.getElementById('mr-rate').textContent=rate+'%';document.getElementById('mr-mc').textContent=M.myMaxCombo;showS('multi-result');}
+function endMultiGame(result,reason=''){clearInterval(M.gameIv);clearInterval(M.cdIv);M.cdIv=null;clearTimeout(M.cpuIv);M.cpuIv=null;if(M.gameUnsub)M.gameUnsub();clearTimeout(M.dmgTimer);M.dmgTimer=null;const rate=M.myAnswered>0?Math.round(M.myCorrect/M.myAnswered*100):0;let medal,title;if(result==='win'){medal='🏆';title='勝利！';}else if(result==='lose'){medal='💀';title='敗北…';}else{medal='🤝';title='引き分け！';}document.getElementById('mr-medal').textContent=medal;document.getElementById('mr-title').textContent=title;document.getElementById('mr-sub').textContent=reason;document.getElementById('mr-cor').textContent=M.myCorrect+'問';document.getElementById('mr-miss').textContent=(M.myMiss||0)+'回';document.getElementById('mr-rate').textContent=rate+'%';document.getElementById('mr-mc').textContent=M.myMaxCombo;showS('multi-result');}
 
 // ── CPU対戦 ──
 async function startCpuBattle(){
@@ -1228,14 +1230,26 @@ async function cpuApplyDmg(dmg,isAttack){
   }
   if(!M.dmgTimer)M.dmgTimer=setTimeout(()=>flushDmg(),5000);
 }
+
+async function rematch(){
   clearTimeout(M.dmgTimer);M.dmgTimer=null;
+  clearTimeout(M.cpuIv);M.cpuIv=null;
   const hp=M.initHP||20;
-  await fb().update(roomRef(M.roomId),{
-    state:'matched', hostHP:hp, guestHP:hp,
-    dmgField:0, dmgStart:0, gameStart:0, hostReady:false, guestReady:false,
-  });
-  const snap=await fb().get(roomRef(M.roomId));
-  showReadyScreen(snap.val());
+  if(M.isCpu){
+    await fb().update(roomRef(M.roomId),{
+      state:'countdown', hostHP:hp, guestHP:hp,
+      dmgField:0, dmgStart:0, gameStart:Date.now()+4000,
+    });
+    const snap=await fb().get(roomRef(M.roomId));
+    startCountdown(snap.val());
+  } else {
+    await fb().update(roomRef(M.roomId),{
+      state:'matched', hostHP:hp, guestHP:hp,
+      dmgField:0, dmgStart:0, gameStart:0, hostReady:false, guestReady:false,
+    });
+    const snap=await fb().get(roomRef(M.roomId));
+    showReadyScreen(snap.val());
+  }
 }
 </script>
 </body>
