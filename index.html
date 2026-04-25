@@ -372,6 +372,41 @@ body:not(.bg-default) #app { background: transparent; }
         <span class="mode-desc">ルームIDを入力して<br>対戦に参加</span>
       </button>
     </div>
+    <button class="btn btn--full" style="margin-top:10px;" onclick="showS('cpu-setup')">🤖 CPU対戦</button>
+  </div>
+
+  <!-- CPU SETUP -->
+  <div id="screen-cpu-setup" class="screen">
+    <div class="page-header"><button class="back-btn" onclick="showS('multi-top')">← 戻る</button><h2>🤖 CPU対戦</h2></div>
+    <div class="card"><div class="card-label">あなたの名前</div><input id="cpu-name" type="text" maxlength="10" placeholder="名前（最大10文字）" class="text-input" /></div>
+    <div class="card">
+      <div class="card-label">難易度</div>
+      <div class="diff-grid">
+        <button class="diff-btn" data-cd="easy"><span class="diff-name">かんたん</span><span class="diff-desc">正答率80% / 4秒/問</span></button>
+        <button class="diff-btn sel" data-cd="normal"><span class="diff-name">ふつう</span><span class="diff-desc">正答率90% / 3.5秒/問</span></button>
+        <button class="diff-btn" data-cd="hard"><span class="diff-name">むずかしい</span><span class="diff-desc">正答率95% / 3秒/問</span></button>
+        <button class="diff-btn diff-btn--oni" data-cd="oni"><span class="diff-name">鬼</span><span class="diff-desc">正答率95% / 2.5秒/問</span></button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-label">制限時間</div>
+      <div class="time-grid">
+        <button class="time-btn" data-ct="60">1分</button>
+        <button class="time-btn sel" data-ct="90">1分30秒</button>
+        <button class="time-btn" data-ct="120">2分</button>
+        <button class="time-btn" data-ct="0">無制限</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-label">初期HP</div>
+      <div class="time-grid">
+        <button class="time-btn" data-chp="15">15</button>
+        <button class="time-btn sel" data-chp="20">20</button>
+        <button class="time-btn" data-chp="25">25</button>
+        <button class="time-btn" data-chp="30">30</button>
+      </div>
+    </div>
+    <button class="btn btn--primary btn--full" onclick="startCpuBattle()">CPU対戦スタート</button>
   </div>
 
   <!-- MULTI SETUP -->
@@ -741,6 +776,17 @@ document.querySelectorAll('[data-d]').forEach(b=>b.addEventListener('click',()=>
 document.querySelectorAll('[data-md]').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('[data-md]').forEach(x=>x.classList.remove('sel'));b.classList.add('sel');M.pendingDiff=b.dataset.md;}));
 document.querySelectorAll('[data-t]').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('[data-t]').forEach(x=>x.classList.remove('sel'));b.classList.add('sel');M.pendingTime=parseInt(b.dataset.t);}));
 document.querySelectorAll('[data-hp]').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('[data-hp]').forEach(x=>x.classList.remove('sel'));b.classList.add('sel');M.pendingHP=parseInt(b.dataset.hp);}));
+// CPU用ボタンリスナー
+const CPU={pendingDiff:'normal',pendingTime:90,pendingHP:20};
+document.querySelectorAll('[data-cd]').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('[data-cd]').forEach(x=>x.classList.remove('sel'));b.classList.add('sel');CPU.pendingDiff=b.dataset.cd;}));
+document.querySelectorAll('[data-ct]').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('[data-ct]').forEach(x=>x.classList.remove('sel'));b.classList.add('sel');CPU.pendingTime=parseInt(b.dataset.ct);}));
+document.querySelectorAll('[data-chp]').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('[data-chp]').forEach(x=>x.classList.remove('sel'));b.classList.add('sel');CPU.pendingHP=parseInt(b.dataset.chp);}));
+const CPU_CFG={
+  easy:  {acc:0.80,interval:4000},
+  normal:{acc:0.90,interval:3500},
+  hard:  {acc:0.95,interval:3000},
+  oni:   {acc:0.95,interval:2500},
+};
 
 function startSolo(){clearInterval(S.iv);_queue=[];S.diff=S.pendingDiff||'normal';S.name=(document.getElementById('solo-name').value.trim()||'プレイヤー').slice(0,10);S.cfg=SOLO_CFG[S.diff];S.score=0;S.correct=0;S.answered=0;S.combo=0;S.maxCombo=0;S.skips=S.cfg.skipMax;S.wrongs=[];S.timeLeft=SOLO_TIME;S.qAnswered=false;showS('solo-game');updateSoloSkipUI();soloLoadQ();soloStartTimer();}
 function soloStartTimer(){clearInterval(S.iv);S.iv=setInterval(()=>{S.timeLeft=Math.max(0,S.timeLeft-0.1);soloUpdateTimer();if(S.timeLeft<=0){clearInterval(S.iv);soloFinish();}},100);}
@@ -855,6 +901,8 @@ function startMultiGame(roomData){
   updateMultiHPUI();updateMultiSkipUI();showS('multi-game');multiLoadQ();
   if(M.timeLimit>0){M.gameIv=setInterval(()=>tickMultiTimer(),200);}
   else{document.getElementById('mg-timer').textContent='∞';}
+  // CPUモードならCPUループ起動
+  if(M.isCpu)startCpuLoop();
   // リスナー：自分HP・相手HP・dmgField・終了状態を監視
   M.gameUnsub=fb().onValue(roomRef(M.roomId),snap=>{
     if(M.ended)return;const d=snap.val();if(!d)return;
@@ -1109,7 +1157,77 @@ function updateMultiHPUI(){
 function updateMultiSkipUI(){const btn=document.getElementById('mg-skip-btn');const sl=M.skipsLeft;if(MULTI_SKIP[M.diff]===0){btn.style.display='none';return;}btn.style.display='';if(sl===Infinity){btn.textContent='スキップ';btn.disabled=false;}else if(sl>0){btn.textContent=`スキップ（残${sl}）`;btn.disabled=false;}else{btn.textContent='スキップ不可';btn.disabled=true;}}
 function endMultiGame(result,reason=''){clearInterval(M.gameIv);clearInterval(M.cdIv);M.cdIv=null;if(M.gameUnsub)M.gameUnsub();clearTimeout(M.dmgTimer);M.dmgTimer=null;const rate=M.myAnswered>0?Math.round(M.myCorrect/M.myAnswered*100):0;let medal,title;if(result==='win'){medal='🏆';title='勝利！';}else if(result==='lose'){medal='💀';title='敗北…';}else{medal='🤝';title='引き分け！';}document.getElementById('mr-medal').textContent=medal;document.getElementById('mr-title').textContent=title;document.getElementById('mr-sub').textContent=reason;document.getElementById('mr-cor').textContent=M.myCorrect+'問';document.getElementById('mr-miss').textContent=(M.myMiss||0)+'回';document.getElementById('mr-rate').textContent=rate+'%';document.getElementById('mr-mc').textContent=M.myMaxCombo;showS('multi-result');}
 
-async function rematch(){
+// ── CPU対戦 ──
+async function startCpuBattle(){
+  const name=(document.getElementById('cpu-name').value.trim()||'プレイヤー').slice(0,10);
+  const diff=CPU.pendingDiff||'normal';
+  const timeLimit=CPU.pendingTime||90;
+  const initHP=CPU.pendingHP||20;
+  const roomId=genRoomId();
+
+  // ホストとして部屋を作る
+  M.roomId=roomId; M.role='host'; M.myName=name;
+  M.diff=diff; M.timeLimit=timeLimit; M.initHP=initHP;
+  M.isCpu=true;
+
+  await fb().set(roomRef(roomId),{
+    host:name, guest:'CPU🤖', diff, timeLimit, initHP,
+    state:'matched',
+    hostHP:initHP, guestHP:initHP,
+    dmgField:0, dmgStart:0, gameStart:0,
+    hostReady:true, guestReady:true,
+  });
+
+  // Ready画面をスキップしてカウントダウンへ
+  M.oppName='CPU🤖';
+  await fb().update(roomRef(roomId),{state:'countdown',gameStart:Date.now()+4000});
+  const snap=await fb().get(roomRef(roomId));
+  startCountdown(snap.val());
+}
+
+// CPUのゲームループ（ホスト側でローカル実行）
+function startCpuLoop(){
+  if(!M.isCpu)return;
+  const cfg=CPU_CFG[M.diff]||CPU_CFG.normal;
+  let cpuCombo=0;
+  let cpuQueue=makeQueue(M.diff);
+
+  function cpuAnswer(){
+    if(M.ended)return;
+    if(!cpuQueue.length)cpuQueue=makeQueue(M.diff);
+    const q=cpuQueue.shift();
+    const correct=Math.random()<cfg.acc;
+    if(correct){
+      cpuCombo++;
+      const dmg=cpuCombo>=11?5:cpuCombo>=5?3:cpuCombo>=3?2:0;
+      if(dmg>0){
+        // CPUはguest(赤)として攻撃 → dmgDeltaのguest攻撃と同じ（+dmg）
+        cpuApplyDmg(dmg,true);
+      }
+    } else {
+      cpuCombo=0;
+      // CPU自爆 → guest自爆（-dmg）
+      cpuApplyDmg(3,false);
+    }
+    M.cpuIv=setTimeout(cpuAnswer,cfg.interval+(Math.random()*800-400));
+  }
+  M.cpuIv=setTimeout(cpuAnswer,cfg.interval);
+}
+
+async function cpuApplyDmg(dmg,isAttack){
+  if(M.ended)return;
+  // CPUはguest役 → 攻撃=+dmg, 自爆=-dmg
+  const delta=isAttack?+dmg:-dmg;
+  const snap=await fb().get(fb().ref(fb().db,'rooms/'+M.roomId+'/dmgField'));
+  const cur=(snap.exists()&&snap.val()!==null)?snap.val():0;
+  const next=cur+delta;
+  const isFirst=(cur===0&&next!==0);
+  await fb().set(fb().ref(fb().db,'rooms/'+M.roomId+'/dmgField'),next);
+  if(isFirst){
+    await fb().set(fb().ref(fb().db,'rooms/'+M.roomId+'/dmgStart'),Date.now());
+  }
+  if(!M.dmgTimer)M.dmgTimer=setTimeout(()=>flushDmg(),5000);
+}
   clearTimeout(M.dmgTimer);M.dmgTimer=null;
   const hp=M.initHP||20;
   await fb().update(roomRef(M.roomId),{
