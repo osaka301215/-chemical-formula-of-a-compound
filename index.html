@@ -744,7 +744,7 @@ function startCountdown(roomData){
 function startMultiGame(roomData){
   if(M.waitUnsub){M.waitUnsub();M.waitUnsub=null;}
   _queue=[];M.myHP=MAX_HP;M.oppHP=MAX_HP;M.myCombo=0;M.myMaxCombo=0;M.myCorrect=0;M.myAnswered=0;
-  M.skipsLeft=MULTI_SKIP[M.diff];M.outPend=0;M.outFireTime=0;M.inPend=0;M.inFireTime=0;M.incomingPendFireTime=0;
+  M.skipsLeft=MULTI_SKIP[M.diff];M.outPend=0;M.outFireTime=0;M.inPend=0;M.inFireTime=0;M.incomingPendFireTime=0;M.settleTimeout=null;
   M.ended=false;M.qAnswered=false;M.gameStart=roomData.gameStart||Date.now();
   const oppName=M.oppName||(M.role==='host'?(roomData.guest||'相手'):roomData.host);M.oppName=oppName;
   document.getElementById('mg-my-name').textContent=M.myName;
@@ -773,10 +773,28 @@ function multiLoadQ(){M.qAnswered=false;const q=nextQ(M.diff);M.currentQ=q;docum
 function multiPick(btn,chosen,q){if(M.qAnswered||M.ended)return;M.qAnswered=true;M.myAnswered++;const ok=chosen===q.ans;document.querySelectorAll('#mg-choices .choice-btn').forEach(b=>{b.disabled=true;if(b.dataset.ans===q.ans)b.classList.add(ok?'correct':'reveal');});if(ok){btn.classList.add('correct');M.myCorrect++;M.myCombo++;if(M.myCombo>M.myMaxCombo)M.myMaxCombo=M.myCombo;const dmg=M.myCombo>=11?5:M.myCombo>=5?3:M.myCombo>=3?2:0;if(dmg>0)addOutgoingDamage(dmg);}else{btn.classList.add('wrong');M.myCombo=0;addSelfDamage(3);}document.getElementById('mg-cor').textContent=M.myCorrect;document.getElementById('mg-combo').textContent=M.myCombo;setTimeout(()=>multiLoadQ(),700);}
 function multiSkip(){if(M.qAnswered||M.ended)return;if(MULTI_SKIP[M.diff]!==Infinity&&M.skipsLeft<=0)return;if(MULTI_SKIP[M.diff]!==Infinity)M.skipsLeft--;M.qAnswered=true;updateMultiSkipUI();document.querySelectorAll('#mg-choices .choice-btn').forEach(b=>b.disabled=true);document.getElementById('mg-bonus').textContent='スキップ';setTimeout(()=>multiLoadQ(),400);}
 async function multiSurrender(){if(M.ended)return;M.ended=true;clearInterval(M.gameIv);if(M.gameUnsub)M.gameUnsub();clearTimeout(M.settleTimeout);await fb().update(roomRef(M.roomId),{state:'ended'});endMultiGame('lose','降参');}
-function addOutgoingDamage(dmg){if(!M.outFireTime)M.outFireTime=Date.now();M.outPend+=dmg;scheduleSettlement();updatePendingUI();pushPendingToFirebase();}
-function addSelfDamage(dmg){if(!M.inFireTime)M.inFireTime=Date.now();M.inPend+=dmg;scheduleSettlement();updatePendingUI();}
-function scheduleSettlement(){clearTimeout(M.settleTimeout);M.settleTimeout=setTimeout(()=>settleAll(),5000);}
-function settleAll(){const out=M.outPend||0;const inc=M.inPend||0;const net=inc-out;if(net>0){M.myHP=Math.max(0,M.myHP-Math.round(net));showPop('-'+Math.round(net)+' HP');}else if(net<0){M.oppHP=Math.max(0,M.oppHP-Math.round(-net));showPop('⚔ -'+Math.round(-net)+' 相手HP');}else if(out>0||inc>0){showPop('⚡ 相殺！');}M.outPend=0;M.outFireTime=0;M.inPend=0;M.inFireTime=0;M.incomingPendFireTime=0;updateMultiHPUI();updatePendingUI();pushHPToFirebase();if(!M.ended){if(M.myHP<=0){M.ended=true;endMultiGame('lose');}if(M.oppHP<=0){M.ended=true;endMultiGame('win');}}}
+function addOutgoingDamage(dmg){
+  const isFirst=!M.outFireTime;
+  if(!M.outFireTime)M.outFireTime=Date.now();
+  M.outPend+=dmg;
+  if(isFirst)scheduleSettlement(); // 最初だけタイマーセット
+  updatePendingUI();pushPendingToFirebase();
+}
+function addSelfDamage(dmg){
+  const isFirst=!M.inFireTime&&!M.outFireTime;
+  if(!M.inFireTime)M.inFireTime=Date.now();
+  M.inPend+=dmg;
+  if(isFirst)scheduleSettlement(); // 最初だけタイマーセット
+  updatePendingUI();
+}
+function scheduleSettlement(){
+  // 既にタイマーが走っていたらセットしない
+  if(M.settleTimeout)return;
+  M.settleTimeout=setTimeout(()=>settleAll(),5000);
+}
+function settleAll(){
+  M.settleTimeout=null; // タイマーをリセット
+  const out=M.outPend||0;const inc=M.inPend||0;const net=inc-out;if(net>0){M.myHP=Math.max(0,M.myHP-Math.round(net));showPop('-'+Math.round(net)+' HP');}else if(net<0){M.oppHP=Math.max(0,M.oppHP-Math.round(-net));showPop('⚔ -'+Math.round(-net)+' 相手HP');}else if(out>0||inc>0){showPop('⚡ 相殺！');}M.outPend=0;M.outFireTime=0;M.inPend=0;M.inFireTime=0;M.incomingPendFireTime=0;updateMultiHPUI();updatePendingUI();pushHPToFirebase();if(!M.ended){if(M.myHP<=0){M.ended=true;endMultiGame('lose');}if(M.oppHP<=0){M.ended=true;endMultiGame('win');}}}
 async function pushPendingToFirebase(){const pKey=M.role==='host'?'pendingToGuest':'pendingToHost';const ptKey=M.role==='host'?'pendTimeGuest':'pendTimeHost';await fb().update(roomRef(M.roomId),{[pKey]:M.outPend,[ptKey]:M.outFireTime||Date.now()});}
 async function pushHPToFirebase(){const mKey=M.role==='host'?'hostHP':'guestHP';const oKey=M.role==='host'?'guestHP':'hostHP';await fb().update(roomRef(M.roomId),{[mKey]:M.myHP,[oKey]:M.oppHP});}
 function updateMultiHPUI(){document.getElementById('mg-my-hp').textContent=Math.max(0,M.myHP);document.getElementById('mg-opp-hp').textContent=Math.max(0,M.oppHP);document.getElementById('mg-my-hp-bar').style.width=Math.max(0,M.myHP)/MAX_HP*100+'%';document.getElementById('mg-opp-hp-bar').style.width=Math.max(0,M.oppHP)/MAX_HP*100+'%';}
