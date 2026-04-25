@@ -385,7 +385,7 @@ body:not(.bg-default) #app { background: transparent; }
         <button class="diff-btn" data-cd="easy"><span class="diff-name">かんたん</span><span class="diff-desc">正答率80% / 5秒/問</span></button>
         <button class="diff-btn sel" data-cd="normal"><span class="diff-name">ふつう</span><span class="diff-desc">正答率80% / 4.5秒/問</span></button>
         <button class="diff-btn" data-cd="hard"><span class="diff-name">むずかしい</span><span class="diff-desc">正答率90% / 3.5秒/問</span></button>
-        <button class="diff-btn diff-btn--oni" data-cd="oni"><span class="diff-name">鬼</span><span class="diff-desc">正答率90% / 3秒/問</span></button>
+        <button class="diff-btn diff-btn--oni" data-cd="oni"><span class="diff-name">鬼</span><span class="diff-desc">正答率95% / 2.75秒/問</span></button>
       </div>
     </div>
     <div class="card">
@@ -787,7 +787,7 @@ const CPU_CFG={
   easy:  {acc:0.80,interval:5000},
   normal:{acc:0.80,interval:4500},
   hard:  {acc:0.90,interval:3500},
-  oni:   {acc:0.90,interval:3000},
+  oni:   {acc:0.95,interval:2750},
 };
 
 function startSolo(){clearInterval(S.iv);_queue=[];S.diff=S.pendingDiff||'normal';S.name=(document.getElementById('solo-name').value.trim()||'プレイヤー').slice(0,10);S.cfg=SOLO_CFG[S.diff];S.score=0;S.correct=0;S.answered=0;S.combo=0;S.maxCombo=0;S.skips=S.cfg.skipMax;S.wrongs=[];S.timeLeft=SOLO_TIME;S.qAnswered=false;showS('solo-game');updateSoloSkipUI();soloLoadQ();soloStartTimer();}
