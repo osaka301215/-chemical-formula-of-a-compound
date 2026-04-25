@@ -785,67 +785,99 @@ function multiSkip(){if(M.qAnswered||M.ended)return;if(MULTI_SKIP[M.diff]!==Infi
 async function multiSurrender(){if(M.ended)return;M.ended=true;clearInterval(M.gameIv);if(M.gameUnsub)M.gameUnsub();clearTimeout(M.dmgTimer);await fb().update(roomRef(M.roomId),{state:'ended'});endMultiGame('lose','降参');}
 
 // ── ダメージ場システム ──
-// netDmg: 負=自分有利（相手にダメージ）、正=相手有利（自分にダメージ）
-// Firebaseの 'dmgField' キーに書き込んで双方が同じ値を参照
-// 最初の変化から5秒後に清算
+// dmgField: 親(host)視点で管理
+//   負 = 親が有利（子にダメージ）
+//   正 = 子が有利（親にダメージ）
+// 親の攻撃: -dmg / 親の自爆: +dmg
+// 子の攻撃: +dmg / 子の自爆: -dmg
 
-function dmgFieldRef(){return fb().ref(fb().db,'rooms/'+M.roomId+'/dmgField');}
+function dmgDelta(dmg, isAttack){
+  // isAttack=true:攻撃, false:自爆
+  // 親: 攻撃=-dmg, 自爆=+dmg
+  // 子: 攻撃=+dmg, 自爆=-dmg
+  if(M.role==='host'){
+    return isAttack ? -dmg : +dmg;
+  } else {
+    return isAttack ? +dmg : -dmg;
+  }
+}
 
-// 自分がコンボダメージを発生（負方向）
-async function addOutDmg(dmg){
+async function applyDmgField(delta){
   if(M.ended)return;
-  const snap=await fb().get(dmgFieldRef());
-  const cur=snap.exists()?snap.val():0;
-  const next=cur-dmg; // 自分有利方向なので引く
-  await fb().set(dmgFieldRef(),next);
+  const snap=await fb().get(fb().ref(fb().db,'rooms/'+M.roomId+'/dmgField'));
+  const cur=(snap.exists()&&snap.val()!==null)?snap.val():0;
+  const next=cur+delta;
+  await fb().set(fb().ref(fb().db,'rooms/'+M.roomId+'/dmgField'),next);
   if(!M.dmgTimer)M.dmgTimer=setTimeout(()=>flushDmg(),5000);
 }
 
-// 不正解：自分が不利方向に+3
-async function takeSelfDmg(dmg){
-  if(M.ended)return;
-  const snap=await fb().get(dmgFieldRef());
-  const cur=snap.exists()?snap.val():0;
-  const next=cur+dmg; // 自分不利方向なので足す
-  await fb().set(dmgFieldRef(),next);
-  if(!M.dmgTimer)M.dmgTimer=setTimeout(()=>flushDmg(),5000);
-}
+// 正解コンボ攻撃
+function addOutDmg(dmg){ applyDmgField(dmgDelta(dmg,true)); }
+// 不正解自爆
+function takeSelfDmg(dmg){ applyDmgField(dmgDelta(dmg,false)); }
 
 // 5秒後に清算
 async function flushDmg(){
   M.dmgTimer=null;
   if(M.ended)return;
-  const snap=await fb().get(dmgFieldRef());
-  if(!snap.exists())return;
+  const snap=await fb().get(fb().ref(fb().db,'rooms/'+M.roomId+'/dmgField'));
+  if(!snap.exists()||snap.val()===null)return;
   const net=snap.val();
+  // dmgFieldをリセット
+  await fb().set(fb().ref(fb().db,'rooms/'+M.roomId+'/dmgField'),0);
   if(net===0){updateDmgUI(0);return;}
-  // リセット
-  await fb().set(dmgFieldRef(),0);
   if(net<0){
-    // 自分有利 → 相手HPを削る
-    const oppHPKey=M.role==='host'?'guestHP':'hostHP';
-    M.oppHP=Math.max(0,M.oppHP+net); // net は負なので足すと減る
-    showPop('⚔ -'+(-net)+' 相手HP');
-    updateMultiHPUI();
-    await fb().update(roomRef(M.roomId),{[oppHPKey]:M.oppHP});
-    if(!M.ended&&M.oppHP<=0){M.ended=true;endMultiGame('win');}
+    // 親有利 → 子（guest）がダメージ
+    if(M.role==='host'){
+      // 自分が親 → 相手（子）HPを削る
+      M.oppHP=Math.max(0,M.oppHP+net);
+      showPop('⚔ '+(-net)+' 相手HP');
+      updateMultiHPUI();
+      await fb().update(roomRef(M.roomId),{guestHP:M.oppHP});
+      if(!M.ended&&M.oppHP<=0){M.ended=true;endMultiGame('win');}
+    } else {
+      // 自分が子 → 自分がダメージ
+      M.myHP=Math.max(0,M.myHP+net);
+      showPop((-net)+' ダメージ！');
+      updateMultiHPUI();
+      await fb().update(roomRef(M.roomId),{guestHP:M.myHP});
+      if(!M.ended&&M.myHP<=0){M.ended=true;endMultiGame('lose');}
+    }
   } else {
-    // 相手有利 → 自分HPを削る
-    const myHPKey=M.role==='host'?'hostHP':'guestHP';
-    M.myHP=Math.max(0,M.myHP-net);
-    showPop('-'+net+' HP');
-    updateMultiHPUI();
-    await fb().update(roomRef(M.roomId),{[myHPKey]:M.myHP});
-    if(!M.ended&&M.myHP<=0){M.ended=true;endMultiGame('lose');}
+    // 子有利 → 親（host）がダメージ
+    if(M.role==='host'){
+      // 自分が親 → 自分がダメージ
+      M.myHP=Math.max(0,M.myHP-net);
+      showPop(net+' ダメージ！');
+      updateMultiHPUI();
+      await fb().update(roomRef(M.roomId),{hostHP:M.myHP});
+      if(!M.ended&&M.myHP<=0){M.ended=true;endMultiGame('lose');}
+    } else {
+      // 自分が子 → 相手（親）HPを削る
+      M.oppHP=Math.max(0,M.oppHP-net);
+      showPop('⚔ '+net+' 相手HP');
+      updateMultiHPUI();
+      await fb().update(roomRef(M.roomId),{hostHP:M.oppHP});
+      if(!M.ended&&M.oppHP<=0){M.ended=true;endMultiGame('win');}
+    }
   }
 }
 
-// ダメージ場の表示更新（リスナーから呼ぶ）
+// dmgField の値をUIに表示（自分視点で有利/不利を判定）
 function updateDmgUI(net){
   const el=document.getElementById('mg-dmg-pending');
-  if(net===0){el.textContent='－';el.className='dmg-pending neutral';}
-  else if(net<0){el.textContent=`⚔ 相手に ${-net} ダメージ蓄積中…`;el.className='dmg-pending to-opp';}
-  else{el.textContent=`💥 自分に ${net} ダメージ蓄積中…`;el.className='dmg-pending to-me';}
+  if(net===0){el.textContent='－';el.className='dmg-pending neutral';return;}
+  // 自分が親(host)なら: 負=有利, 正=不利
+  // 自分が子(guest)なら: 正=有利, 負=不利
+  const iWinning=(M.role==='host')?net<0:net>0;
+  const abs=Math.abs(net);
+  if(iWinning){
+    el.textContent=`⚔ 相手に ${abs} ダメージ蓄積中…`;
+    el.className='dmg-pending to-opp';
+  } else {
+    el.textContent=`💥 自分に ${abs} ダメージ蓄積中…`;
+    el.className='dmg-pending to-me';
+  }
 }
 function updateMultiHPUI(){document.getElementById('mg-my-hp').textContent=Math.max(0,M.myHP);document.getElementById('mg-opp-hp').textContent=Math.max(0,M.oppHP);document.getElementById('mg-my-hp-bar').style.width=Math.max(0,M.myHP)/MAX_HP*100+'%';document.getElementById('mg-opp-hp-bar').style.width=Math.max(0,M.oppHP)/MAX_HP*100+'%';}
 function updateMultiSkipUI(){const btn=document.getElementById('mg-skip-btn');const sl=M.skipsLeft;if(MULTI_SKIP[M.diff]===0){btn.style.display='none';return;}btn.style.display='';if(sl===Infinity){btn.textContent='スキップ';btn.disabled=false;}else if(sl>0){btn.textContent=`スキップ（残${sl}）`;btn.disabled=false;}else{btn.textContent='スキップ不可';btn.disabled=true;}}
