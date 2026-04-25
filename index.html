@@ -158,6 +158,19 @@ body:not(.bg-default) .mode-card,
 body:not(.bg-default) .stat,
 body:not(.bg-default) .wrong-list { background: rgba(22,23,32,0.82); backdrop-filter: blur(4px); }
 body:not(.bg-default) #app { background: transparent; }
+/* ── ダメージボール飛翔エフェクト ── */
+.dmg-ball { position:fixed; width:28px; height:28px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:18px; pointer-events:none; z-index:500; }
+.dmg-ball.blue { color:#8b84ff; background:rgba(108,99,255,0.4); box-shadow:0 0 14px #6c63ff,0 0 28px #6c63ff; }
+.dmg-ball.red  { color:#ff6b6b; background:rgba(255,77,77,0.4);  box-shadow:0 0 14px #ff4d4d,0 0 28px #ff4d4d; }
+@keyframes flyToTop    { 0%{opacity:1;transform:translateY(0) scale(1)} 70%{opacity:1;transform:translateY(-130px) scale(1.3)} 100%{opacity:0;transform:translateY(-150px) scale(0.2)} }
+@keyframes flyToBottom { 0%{opacity:1;transform:translateY(0) scale(1)} 70%{opacity:1;transform:translateY(130px) scale(1.3)} 100%{opacity:0;transform:translateY(150px) scale(0.2)} }
+.dmg-explosion { position:fixed; border-radius:50%; pointer-events:none; z-index:501; transform:translate(-50%,-50%); animation:explode 0.55s ease-out forwards; }
+.dmg-explosion.blue { background:radial-gradient(circle,#fff 0%,#8b84ff 35%,rgba(108,99,255,0.2) 65%,transparent 100%); }
+.dmg-explosion.red  { background:radial-gradient(circle,#fff 0%,#ff6b6b 35%,rgba(255,77,77,0.2) 65%,transparent 100%); }
+@keyframes explode { 0%{width:10px;height:10px;opacity:1} 60%{width:80px;height:80px;opacity:0.9} 100%{width:120px;height:120px;opacity:0} }
+@keyframes hpFlash { 0%,100%{opacity:1} 30%,70%{opacity:0.15} 50%{opacity:0.5} }
+.hp-flash { animation:hpFlash 0.45s ease; }
+
 /* ── 対戦フィールド ── */
 .field { border-radius: var(--radius); padding: 10px 14px; margin-bottom: 0; }
 .field--me  { background: rgba(108,99,255,0.08); border: 1px solid rgba(108,99,255,0.3); }
@@ -441,19 +454,17 @@ body:not(.bg-default) #app { background: transparent; }
   <!-- MULTI GAME -->
   <div id="screen-multi-game" class="screen">
 
-    <!-- 自分フィールド（青） -->
-    <div class="field field--me">
+    <!-- 相手フィールド（赤）← 上に -->
+    <div class="field field--opp">
       <div class="field-header">
-        <span class="field-name" id="mg-my-name">あなた</span>
+        <span class="field-name" id="mg-opp-name">相手</span>
         <div class="field-stats">
-          <span class="field-stat"><span class="field-stat-label">正解</span><span class="field-stat-val" id="mg-cor">0</span></span>
-          <span class="field-stat"><span class="field-stat-label">コンボ</span><span class="field-stat-val" id="mg-combo">0</span></span>
-          <span class="field-stat"><span class="field-stat-label">スキップ</span><span class="field-stat-val" id="mg-skip">-</span></span>
+          <span class="field-stat"><span class="field-stat-label">残り</span><span class="field-stat-val timer-val" id="mg-timer">-</span></span>
         </div>
       </div>
       <div class="field-hp-row">
-        <div class="field-hp-bar-bg"><div class="field-hp-bar-fill field-hp--me" id="mg-my-hp-bar"></div></div>
-        <div class="field-hp-num" id="mg-my-hp">20</div>
+        <div class="field-hp-bar-bg"><div class="field-hp-bar-fill field-hp--opp" id="mg-opp-hp-bar"></div></div>
+        <div class="field-hp-num" id="mg-opp-hp">20</div>
       </div>
     </div>
 
@@ -466,17 +477,19 @@ body:not(.bg-default) #app { background: transparent; }
       </div>
     </div>
 
-    <!-- 相手フィールド（赤） -->
-    <div class="field field--opp">
+    <!-- 自分フィールド（青）← 下に -->
+    <div class="field field--me">
       <div class="field-hp-row">
-        <div class="field-hp-num" id="mg-opp-hp">20</div>
-        <div class="field-hp-bar-bg"><div class="field-hp-bar-fill field-hp--opp" id="mg-opp-hp-bar"></div></div>
+        <div class="field-hp-bar-bg"><div class="field-hp-bar-fill field-hp--me" id="mg-my-hp-bar"></div></div>
+        <div class="field-hp-num" id="mg-my-hp">20</div>
       </div>
-      <div class="field-header" style="justify-content:flex-end;">
+      <div class="field-header" style="margin-top:6px;margin-bottom:0;">
+        <span class="field-name" id="mg-my-name">あなた</span>
         <div class="field-stats">
-          <span class="field-stat"><span class="field-stat-label">残り</span><span class="field-stat-val timer-val" id="mg-timer">-</span></span>
+          <span class="field-stat"><span class="field-stat-label">正解</span><span class="field-stat-val" id="mg-cor">0</span></span>
+          <span class="field-stat"><span class="field-stat-label">コンボ</span><span class="field-stat-val" id="mg-combo">0</span></span>
+          <span class="field-stat"><span class="field-stat-label">スキップ</span><span class="field-stat-val" id="mg-skip">-</span></span>
         </div>
-        <span class="field-name" id="mg-opp-name">相手</span>
       </div>
     </div>
 
@@ -896,44 +909,78 @@ async function flushDmg(){
   const snap=await fb().get(fb().ref(fb().db,'rooms/'+M.roomId+'/dmgField'));
   if(!snap.exists()||snap.val()===null)return;
   const net=snap.val();
-  // dmgFieldをリセット
   await fb().set(fb().ref(fb().db,'rooms/'+M.roomId+'/dmgField'),0);
   if(net===0){updateDmgUI(0);return;}
-  if(net<0){
-    // 親有利 → 子（guest）がダメージ
-    if(M.role==='host'){
-      // 自分が親 → 相手（子）HPを削る
-      M.oppHP=Math.max(0,M.oppHP+net);
-      showPop('⚔ '+(-net)+' 相手HP');
-      updateMultiHPUI();
-      await fb().update(roomRef(M.roomId),{guestHP:M.oppHP});
-      if(!M.ended&&M.oppHP<=0){M.ended=true;endMultiGame('win');}
-    } else {
-      // 自分が子 → 自分がダメージ
-      M.myHP=Math.max(0,M.myHP+net);
-      showPop((-net)+' ダメージ！');
-      updateMultiHPUI();
-      await fb().update(roomRef(M.roomId),{guestHP:M.myHP});
-      if(!M.ended&&M.myHP<=0){M.ended=true;endMultiGame('lose');}
-    }
-  } else {
-    // 子有利 → 親（host）がダメージ
-    if(M.role==='host'){
-      // 自分が親 → 自分がダメージ
-      M.myHP=Math.max(0,M.myHP-net);
-      showPop(net+' ダメージ！');
-      updateMultiHPUI();
-      await fb().update(roomRef(M.roomId),{hostHP:M.myHP});
-      if(!M.ended&&M.myHP<=0){M.ended=true;endMultiGame('lose');}
-    } else {
-      // 自分が子 → 相手（親）HPを削る
-      M.oppHP=Math.max(0,M.oppHP-net);
-      showPop('⚔ '+net+' 相手HP');
-      updateMultiHPUI();
-      await fb().update(roomRef(M.roomId),{hostHP:M.oppHP});
-      if(!M.ended&&M.oppHP<=0){M.ended=true;endMultiGame('win');}
-    }
+
+  // ボール飛翔エフェクト
+  const color=net<0?'blue':'red';
+  // net<0=親有利→相手(上)へ飛ぶ、net>0=子有利→自分(下)へ飛ぶ
+  const flyUp=net<0;
+  const pool=document.getElementById('mg-dmg-pool');
+  if(pool){
+    const rect=pool.getBoundingClientRect();
+    const cx=rect.left+rect.width/2;
+    const cy=rect.top+rect.height/2;
+    // ボール生成
+    const ball=document.createElement('div');
+    ball.className='dmg-ball '+color;
+    ball.textContent=net<0?'🔵':'🔴';
+    ball.style.left=(cx-14)+'px';
+    ball.style.top=(cy-14)+'px';
+    ball.style.animation=(flyUp?'flyToTop':'flyToBottom')+' 0.7s ease-in forwards';
+    document.body.appendChild(ball);
+    // 着弾位置の爆発
+    setTimeout(()=>{
+      ball.remove();
+      const targetEl=flyUp?document.getElementById('mg-opp-hp-bar'):document.getElementById('mg-my-hp-bar');
+      const tr=targetEl?targetEl.getBoundingClientRect():null;
+      if(tr){
+        const ex=document.createElement('div');
+        ex.className='dmg-explosion '+color;
+        ex.style.left=(tr.left+tr.width/2)+'px';
+        ex.style.top=(tr.top+tr.height/2)+'px';
+        document.body.appendChild(ex);
+        // HPバーフラッシュ
+        const barEl=flyUp?document.getElementById('mg-opp-hp-bar'):document.getElementById('mg-my-hp-bar');
+        if(barEl){barEl.classList.remove('hp-flash');void barEl.offsetWidth;barEl.classList.add('hp-flash');}
+        setTimeout(()=>ex.remove(),600);
+      }
+    },650);
   }
+
+  // 少し待ってからHP反映
+  setTimeout(async()=>{
+    updateDmgUI(0);
+    if(net<0){
+      if(M.role==='host'){
+        M.oppHP=Math.max(0,M.oppHP+net);
+        showPop('⚔ '+(-net)+' 相手HP');
+        updateMultiHPUI();
+        await fb().update(roomRef(M.roomId),{guestHP:M.oppHP});
+        if(!M.ended&&M.oppHP<=0){M.ended=true;endMultiGame('win');}
+      } else {
+        M.myHP=Math.max(0,M.myHP+net);
+        showPop((-net)+' ダメージ！');
+        updateMultiHPUI();
+        await fb().update(roomRef(M.roomId),{guestHP:M.myHP});
+        if(!M.ended&&M.myHP<=0){M.ended=true;endMultiGame('lose');}
+      }
+    } else {
+      if(M.role==='host'){
+        M.myHP=Math.max(0,M.myHP-net);
+        showPop(net+' ダメージ！');
+        updateMultiHPUI();
+        await fb().update(roomRef(M.roomId),{hostHP:M.myHP});
+        if(!M.ended&&M.myHP<=0){M.ended=true;endMultiGame('lose');}
+      } else {
+        M.oppHP=Math.max(0,M.oppHP-net);
+        showPop('⚔ '+net+' 相手HP');
+        updateMultiHPUI();
+        await fb().update(roomRef(M.roomId),{hostHP:M.oppHP});
+        if(!M.ended&&M.oppHP<=0){M.ended=true;endMultiGame('win');}
+      }
+    }
+  },700);
 }
 
 // dmgField の値をUIに表示（自分視点で有利/不利を判定）
