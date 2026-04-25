@@ -7,9 +7,9 @@
   --bg3: #1e2030;
   --border: rgba(255,255,255,0.08);
   --border2: rgba(255,255,255,0.14);
-  --text: #e8e9f0;
-  --text2: #8b8fa8;
-  --text3: #555870;
+  --text: #ffffff;
+  --text2: #b0b3c8;
+  --text3: #6b6f88;
   --accent: #6c63ff;
   --accent2: #8b84ff;
   --accent-bg: rgba(108,99,255,0.12);
@@ -246,6 +246,11 @@ body {
 @keyframes popUp {
   0%  { opacity:1; transform:translate(-50%,-50%) scale(1); }
   100%{ opacity:0; transform:translate(-50%,-140%) scale(1.4); }
+}
+@keyframes countPop {
+  0%  { opacity:0; transform: scale(0.5); }
+  50% { opacity:1; transform: scale(1.2); }
+  100%{ opacity:1; transform: scale(1); }
 }
 
 /* ── Responsive ── */
