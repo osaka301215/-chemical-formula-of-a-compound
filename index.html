@@ -651,7 +651,6 @@ document.querySelectorAll('[data-d]').forEach(b=>b.addEventListener('click',()=>
 document.querySelectorAll('[data-md]').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('[data-md]').forEach(x=>x.classList.remove('sel'));b.classList.add('sel');M.pendingDiff=b.dataset.md;}));
 document.querySelectorAll('[data-t]').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('[data-t]').forEach(x=>x.classList.remove('sel'));b.classList.add('sel');M.pendingTime=parseInt(b.dataset.t);}));
 document.querySelectorAll('[data-hp]').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('[data-hp]').forEach(x=>x.classList.remove('sel'));b.classList.add('sel');M.pendingHP=parseInt(b.dataset.hp);}));
-M.pendingHP=20;
 
 const SOLO_CFG={easy:{skipMax:Infinity,timeBonus:false,pts:80},normal:{skipMax:3,timeBonus:false,pts:120},hard:{skipMax:1,timeBonus:true,pts:160},oni:{skipMax:0,timeBonus:true,pts:200}};
 const SOLO_TIME=40;
@@ -669,7 +668,7 @@ function soloFinish(){clearInterval(S.iv);const rate=S.answered>0?Math.round(S.c
 
 const MAX_HP=20;
 const MULTI_SKIP={easy:Infinity,normal:3,hard:1,oni:0};
-const M={pendingDiff:'normal',pendingTime:90};
+const M={pendingDiff:'normal',pendingTime:90,pendingHP:20};
 function fb(){return window._fb;}
 function roomRef(id){return fb().ref(fb().db,'rooms/'+id);}
 function genRoomId(){const c='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';return Array.from({length:6},()=>c[Math.floor(Math.random()*c.length)]).join('');}
