@@ -158,6 +158,27 @@ body:not(.bg-default) .mode-card,
 body:not(.bg-default) .stat,
 body:not(.bg-default) .wrong-list { background: rgba(22,23,32,0.82); backdrop-filter: blur(4px); }
 body:not(.bg-default) #app { background: transparent; }
+/* ランキング */
+.rank-row { display: flex; align-items: center; gap: 8px; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 14px; }
+.rank-row:last-child { border-bottom: none; }
+.rank-num { width: 28px; text-align: center; font-weight: 700; font-family: var(--mono); color: var(--text3); font-size: 13px; }
+.rank-num.gold { color: #ffd700; font-size: 16px; }
+.rank-num.silver { color: #c0c0c0; font-size: 16px; }
+.rank-num.bronze { color: #cd7f32; font-size: 16px; }
+.rank-name { flex: 1; font-weight: 500; }
+.rank-score { font-weight: 700; color: var(--accent2); font-family: var(--mono); }
+.rank-detail { font-size: 11px; color: var(--text3); }
+.rank-tabs { display: flex; gap: 4px; margin-bottom: 12px; flex-wrap: wrap; }
+.rank-tab { padding: 6px 12px; border-radius: var(--radius-sm); font-size: 13px; cursor: pointer; border: 1px solid var(--border2); background: transparent; color: var(--text2); font-family: var(--font); transition: background 0.15s; }
+.rank-tab:hover { background: var(--bg3); }
+.rank-tab.sel { background: var(--accent); border-color: var(--accent); color: white; font-weight: 700; }
+/* 登録モーダル */
+.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; z-index: 100; }
+.modal-box { background: var(--bg2); border: 1px solid var(--border2); border-radius: var(--radius); padding: 24px; width: 90%; max-width: 340px; }
+.modal-title { font-size: 18px; font-weight: 700; margin-bottom: 8px; text-align: center; }
+.modal-sub { font-size: 13px; color: var(--text2); margin-bottom: 16px; text-align: center; }
+.modal-score { font-size: 28px; font-weight: 700; color: var(--accent2); font-family: var(--mono); text-align: center; margin-bottom: 16px; }
+.rank-highlight { background: var(--accent-bg); border-radius: var(--radius-sm); }
 </style>
 </head>
 <body>
@@ -180,6 +201,7 @@ body:not(.bg-default) #app { background: transparent; }
         <span class="mode-desc">別デバイスで対戦<br>HPを削り合え</span>
       </button>
     </div>
+    <button class="btn btn--full" style="margin-top:10px;" onclick="showRanking('normal')">🏆 オンラインランキング</button>
     <div class="bg-selector">
       <button class="bg-btn sel" onclick="setBg('default')">🌙 デフォルト</button>
       <button class="bg-btn" onclick="setBg('spring')">🌸 春</button>
@@ -204,6 +226,7 @@ body:not(.bg-default) #app { background: transparent; }
     </div>
     <div class="card"><div class="card-label">プレイヤー名</div><input id="solo-name" type="text" maxlength="10" placeholder="名前（最大10文字）" class="text-input" /></div>
     <button class="btn btn--primary btn--full" onclick="startSolo()">スタート</button>
+    <button class="btn btn--full" style="margin-top:8px;" onclick="showRanking(S.pendingDiff||'normal')">🏆 ランキングを見る</button>
   </div>
 
   <!-- SOLO GAME -->
@@ -245,6 +268,40 @@ body:not(.bg-default) #app { background: transparent; }
     <div class="btn-row">
       <button class="btn btn--primary" onclick="startSolo()">もう一度</button>
       <button class="btn" onclick="showS('solo-home')">メニュー</button>
+    </div>
+    <button class="btn btn--full" style="margin-top:8px;border-color:var(--amber);color:var(--amber);" onclick="showRegisterModal()">🏆 ランキングに登録する</button>
+  </div>
+
+  <!-- RANKING -->
+  <div id="screen-ranking" class="screen">
+    <div class="page-header">
+      <button class="back-btn" id="ranking-back-btn" onclick="showS('mode')">← 戻る</button>
+      <h2>🏆 オンラインランキング</h2>
+    </div>
+    <div class="rank-tabs">
+      <button class="rank-tab" data-rd="easy" onclick="switchRankTab(this,'easy')">かんたん</button>
+      <button class="rank-tab sel" data-rd="normal" onclick="switchRankTab(this,'normal')">ふつう</button>
+      <button class="rank-tab" data-rd="hard" onclick="switchRankTab(this,'hard')">むずかしい</button>
+      <button class="rank-tab" data-rd="oni" onclick="switchRankTab(this,'oni')">鬼</button>
+    </div>
+    <div class="card" id="ranking-list" style="min-height:200px;">
+      <div style="text-align:center;color:var(--text3);padding:2rem;font-size:14px;">読み込み中…</div>
+    </div>
+  </div>
+
+  <!-- 登録モーダル -->
+  <div id="register-modal" class="modal-overlay" style="display:none;">
+    <div class="modal-box">
+      <div class="modal-title">🏆 ランキング登録</div>
+      <div class="modal-sub" id="reg-diff-label">ふつう</div>
+      <div class="modal-score" id="reg-score">0</div>
+      <div style="font-size:13px;color:var(--text2);margin-bottom:8px;">登録名</div>
+      <input id="reg-name" type="text" maxlength="10" placeholder="名前（最大10文字）" class="text-input" style="margin-bottom:12px;" />
+      <div class="btn-row">
+        <button class="btn btn--primary" onclick="submitRanking()">登録する</button>
+        <button class="btn" onclick="closeRegisterModal()">キャンセル</button>
+      </div>
+      <div id="reg-msg" style="font-size:13px;text-align:center;margin-top:8px;min-height:18px;"></div>
     </div>
   </div>
 
@@ -468,6 +525,101 @@ function gcd(a,b){return b===0?a:gcd(b,a%b);}
 function showS(n){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById('screen-'+n).classList.add('active');}
 function showPop(text){const el=document.createElement('div');el.className='bonus-pop';el.textContent=text;document.body.appendChild(el);setTimeout(()=>el.remove(),950);}
 function goMode(m){showS(m==='solo'?'solo-home':'multi-top');}
+
+// ── ランキング ──
+const DIFF_LABEL={easy:'かんたん',normal:'ふつう',hard:'むずかしい',oni:'鬼'};
+let currentRankDiff='normal';
+let rankingFrom='mode'; // 戻り先
+
+function rankRef(diff){return fb().ref(fb().db,'ranking/'+diff);}
+
+async function showRanking(diff){
+  currentRankDiff=diff||'normal';
+  // 戻り先を記憶
+  const cur=document.querySelector('.screen.active');
+  rankingFrom=cur?cur.id.replace('screen-',''):'mode';
+  document.getElementById('ranking-back-btn').onclick=()=>showS(rankingFrom);
+  // タブ選択状態を更新
+  document.querySelectorAll('.rank-tab').forEach(t=>{
+    t.classList.toggle('sel',t.dataset.rd===currentRankDiff);
+  });
+  showS('ranking');
+  await loadRanking(currentRankDiff);
+}
+
+async function switchRankTab(el,diff){
+  currentRankDiff=diff;
+  document.querySelectorAll('.rank-tab').forEach(t=>t.classList.remove('sel'));
+  el.classList.add('sel');
+  await loadRanking(diff);
+}
+
+async function loadRanking(diff){
+  const el=document.getElementById('ranking-list');
+  el.innerHTML='<div style="text-align:center;color:var(--text3);padding:2rem;font-size:14px;">読み込み中…</div>';
+  try{
+    const snap=await fb().get(rankRef(diff));
+    if(!snap.exists()){el.innerHTML='<div style="text-align:center;color:var(--text3);padding:2rem;font-size:14px;">まだ記録がありません</div>';return;}
+    // オブジェクトを配列に変換してスコア順ソート
+    const entries=Object.values(snap.val()).sort((a,b)=>b.score-a.score).slice(0,10);
+    const medals=['🥇','🥈','🥉'];
+    let h='';
+    entries.forEach((e,i)=>{
+      const numClass=i===0?'gold':i===1?'silver':i===2?'bronze':'';
+      const num=i<3?medals[i]:(i+1);
+      h+=`<div class="rank-row">
+        <div class="rank-num ${numClass}">${num}</div>
+        <div>
+          <div class="rank-name">${e.name}</div>
+          <div class="rank-detail">${e.correct}問正解 (${e.rate}%) ｜ ${e.date}</div>
+        </div>
+        <div class="rank-score">${e.score.toLocaleString()}<span style="font-size:11px;color:var(--text3);font-weight:400;"> pts</span></div>
+      </div>`;
+    });
+    el.innerHTML=h;
+  }catch(e){el.innerHTML='<div style="text-align:center;color:var(--red);padding:2rem;font-size:14px;">読み込みに失敗しました</div>';}
+}
+
+function showRegisterModal(){
+  // 前回入力した名前をデフォルト表示
+  const prev=document.getElementById('solo-name').value.trim()||S.name||'';
+  document.getElementById('reg-name').value=prev;
+  document.getElementById('reg-score').textContent=S.score.toLocaleString()+' pts';
+  document.getElementById('reg-diff-label').textContent=DIFF_LABEL[S.diff]||'ふつう';
+  document.getElementById('reg-msg').textContent='';
+  document.getElementById('register-modal').style.display='flex';
+}
+
+function closeRegisterModal(){
+  document.getElementById('register-modal').style.display='none';
+}
+
+async function submitRanking(){
+  const name=(document.getElementById('reg-name').value.trim()||'名無し').slice(0,10);
+  const msgEl=document.getElementById('reg-msg');
+  msgEl.textContent='登録中…';msgEl.style.color='var(--text2)';
+  try{
+    const rate=S.answered>0?Math.round(S.correct/S.answered*100):0;
+    const entry={name,score:S.score,correct:S.correct,rate,date:new Date().toLocaleDateString('ja-JP')};
+    // push で新規キー生成
+    const newRef=fb().ref(fb().db,'ranking/'+S.diff+'/'+Date.now()+'_'+Math.random().toString(36).slice(2,7));
+    await fb().set(newRef,entry);
+    // 10件を超えたら最低スコアを削除
+    const snap=await fb().get(rankRef(S.diff));
+    if(snap.exists()){
+      const all=Object.entries(snap.val()).sort((a,b)=>b[1].score-a[1].score);
+      if(all.length>10){
+        for(const [key] of all.slice(10)){
+          await fb().remove(fb().ref(fb().db,'ranking/'+S.diff+'/'+key));
+        }
+      }
+    }
+    msgEl.textContent='✅ 登録しました！';msgEl.style.color='var(--green)';
+    setTimeout(()=>{closeRegisterModal();showRanking(S.diff);},1200);
+  }catch(e){
+    msgEl.textContent='❌ 登録に失敗しました';msgEl.style.color='var(--red)';
+  }
+}
 
 function setBg(season){
   document.body.className='bg-'+season;
