@@ -6,271 +6,595 @@
   <title>化学式マスター</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="style.css" />
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #0e0f14; --bg2: #161720; --bg3: #1e2030;
+  --border: rgba(255,255,255,0.08); --border2: rgba(255,255,255,0.14);
+  --text: #ffffff; --text2: #b0b3c8; --text3: #6b6f88;
+  --accent: #6c63ff; --accent2: #8b84ff; --accent-bg: rgba(108,99,255,0.12);
+  --red: #ff4d4d; --red-bg: rgba(255,77,77,0.1);
+  --green: #4dff9a; --green-bg: rgba(77,255,154,0.1);
+  --amber: #ffb347; --hp-me: #6c63ff; --hp-opp: #ff4d4d;
+  --radius: 10px; --radius-sm: 6px;
+  --font: 'Noto Sans JP', sans-serif; --mono: 'JetBrains Mono', monospace;
+}
+html { font-size: 16px; }
+body { font-family: var(--font); background: var(--bg); color: var(--text); min-height: 100vh; display: flex; justify-content: center; padding: 0 0 40px; }
+#app { width: 100%; max-width: 480px; padding: 16px; }
+.screen { display: none; }
+.screen.active { display: block; animation: fadeIn 0.2s ease; }
+@keyframes fadeIn { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
+.title-block { text-align: center; padding: 2rem 0 1.5rem; }
+.title-label { font-size: 11px; letter-spacing: .2em; color: var(--text3); margin-bottom: 8px; }
+.title-main { font-size: 32px; font-weight: 700; background: linear-gradient(135deg, var(--accent2), #c084fc); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; margin-bottom: 6px; }
+.title-sub { font-size: 14px; color: var(--text2); }
+.mode-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 8px; }
+.mode-card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px 16px; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 8px; transition: border-color 0.2s, transform 0.15s; color: var(--text); }
+.mode-card:hover { border-color: var(--accent); transform: translateY(-2px); }
+.mode-card--battle { border-color: rgba(255,77,77,0.3); }
+.mode-card--battle:hover { border-color: var(--red); }
+.mode-icon { font-size: 32px; }
+.mode-name { font-size: 17px; font-weight: 700; }
+.mode-desc { font-size: 12px; color: var(--text2); text-align: center; line-height: 1.6; }
+.page-header { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+.page-header h2 { font-size: 18px; font-weight: 700; }
+.back-btn { background: transparent; border: 1px solid var(--border2); border-radius: var(--radius-sm); padding: 6px 12px; color: var(--text2); font-size: 13px; cursor: pointer; font-family: var(--font); transition: background 0.15s; }
+.back-btn:hover { background: var(--bg3); }
+.card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; margin-bottom: 12px; }
+.card-label { font-size: 12px; color: var(--text2); margin-bottom: 10px; }
+.hint-box { font-size: 12px; color: var(--text3); margin-top: 10px; padding: 8px 10px; background: var(--bg); border-radius: var(--radius-sm); line-height: 1.6; }
+.diff-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.diff-btn { background: var(--bg3); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px 10px; cursor: pointer; color: var(--text); font-family: var(--font); display: flex; flex-direction: column; gap: 4px; text-align: left; transition: border-color 0.15s; }
+.diff-btn:hover { border-color: var(--accent); }
+.diff-btn.sel { border: 2px solid var(--accent); background: var(--accent-bg); }
+.diff-btn--oni { border-color: rgba(255,77,77,0.3); }
+.diff-btn--oni.sel { border-color: var(--red); background: var(--red-bg); }
+.diff-btn--oni .diff-name { color: var(--red); }
+.diff-name { font-size: 15px; font-weight: 700; }
+.diff-desc { font-size: 11px; color: var(--text2); line-height: 1.5; }
+.time-grid { display: flex; gap: 8px; flex-wrap: wrap; }
+.time-btn { background: var(--bg3); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 8px 16px; font-size: 13px; cursor: pointer; color: var(--text); font-family: var(--font); transition: border-color 0.15s; }
+.time-btn:hover { border-color: var(--accent); }
+.time-btn.sel { border: 2px solid var(--accent); background: var(--accent-bg); font-weight: 700; }
+.text-input { width: 100%; padding: 11px 14px; font-size: 15px; background: var(--bg3); border: 1px solid var(--border2); border-radius: var(--radius-sm); color: var(--text); font-family: var(--font); outline: none; transition: border-color 0.15s; }
+.text-input:focus { border-color: var(--accent); }
+.btn { background: transparent; border: 1px solid var(--border2); border-radius: var(--radius-sm); padding: 10px 20px; font-size: 14px; cursor: pointer; color: var(--text); font-family: var(--font); transition: background 0.15s, transform 0.1s; }
+.btn:hover { background: var(--bg3); }
+.btn:active { transform: scale(0.97); }
+.btn--primary { background: var(--accent); border-color: var(--accent); color: white; font-weight: 700; }
+.btn--primary:hover { background: var(--accent2); border-color: var(--accent2); }
+.btn--full { width: 100%; padding: 13px; }
+.btn--skip { font-size: 13px; padding: 8px 14px; color: var(--text2); }
+.btn--skip:disabled { opacity: 0.3; cursor: default; }
+.btn--end { background: rgba(255,77,77,0.15); border-color: rgba(255,77,77,0.4); color: var(--red); font-size: 13px; margin-left: auto; }
+.btn--end:hover { background: var(--red-bg); }
+.btn-row { display: flex; gap: 8px; margin-top: 12px; }
+.btn-row .btn { flex: 1; text-align: center; padding: 11px; }
+.stats-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; margin-bottom: 8px; }
+.stats-row--4 { grid-template-columns: repeat(4, 1fr); }
+.stat { background: var(--bg2); border-radius: var(--radius-sm); padding: 8px 4px; text-align: center; }
+.stat-label { font-size: 10px; color: var(--text3); margin-bottom: 2px; }
+.stat-value { font-size: 18px; font-weight: 700; font-family: var(--mono); color: var(--text); }
+.stat-value--accent { color: var(--accent2); }
+.stat--timer .stat-value { font-size: 22px; }
+.timer-warn { color: var(--amber) !important; }
+.timer-danger { color: var(--red) !important; animation: pulse 0.5s infinite alternate; }
+@keyframes pulse { from{opacity:1} to{opacity:0.5} }
+.progress-bar { height: 4px; background: var(--bg3); border-radius: 2px; overflow: hidden; margin-bottom: 10px; }
+.progress-fill { height: 100%; background: var(--accent); border-radius: 2px; transition: width 0.3s linear, background 0.3s; width: 100%; }
+.progress-fill.prog-warn { background: var(--amber); }
+.progress-fill.prog-danger { background: var(--red); }
+.question-card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px 16px; text-align: center; margin-bottom: 10px; }
+.question-label { font-size: 12px; color: var(--text2); margin-bottom: 10px; }
+.question-text { font-size: 24px; font-weight: 700; line-height: 1.3; color: var(--text); }
+.bonus-msg { font-size: 12px; color: var(--amber); margin-top: 6px; min-height: 16px; }
+.choices-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px; }
+.choice-btn { background: var(--bg2); border: 1px solid var(--border2); border-radius: var(--radius-sm); padding: 14px 10px; font-size: 17px; font-weight: 700; font-family: var(--mono); cursor: pointer; color: var(--text); text-align: center; transition: border-color 0.1s, background 0.1s, transform 0.1s; }
+.choice-btn:hover:not(:disabled) { border-color: var(--accent); background: var(--accent-bg); transform: scale(1.02); }
+.choice-btn:active:not(:disabled) { transform: scale(0.97); }
+.choice-btn.correct { background: var(--green-bg); border: 2px solid var(--green); color: var(--green); }
+.choice-btn.wrong   { background: var(--red-bg);   border: 2px solid var(--red);   color: var(--red); }
+.choice-btn.reveal  { background: var(--green-bg); border: 2px solid var(--green); color: var(--green); }
+.choice-btn:disabled { cursor: default; }
+.choice-btn sub { font-size: 0.65em; }
+.action-row { display: flex; gap: 8px; align-items: center; }
+.hp-section { margin-bottom: 8px; }
+.hp-row { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+.hp-label { font-size: 13px; font-weight: 700; min-width: 64px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hp-row--me .hp-label { color: var(--hp-me); }
+.hp-row--opp .hp-label { color: var(--hp-opp); }
+.hp-bar-bg { flex: 1; height: 12px; background: var(--bg3); border-radius: 6px; overflow: hidden; }
+.hp-bar-fill { height: 100%; border-radius: 6px; transition: width 0.4s ease; }
+.hp-fill--me { background: var(--hp-me); width: 100%; }
+.hp-fill--opp { background: var(--hp-opp); width: 100%; }
+.hp-num { font-size: 13px; font-weight: 700; font-family: var(--mono); min-width: 28px; text-align: right; color: var(--text); }
+.dmg-pending { text-align: center; font-size: 13px; font-weight: 700; min-height: 22px; margin-bottom: 6px; transition: color 0.2s; }
+.dmg-pending.to-opp { color: var(--green); }
+.dmg-pending.to-me  { color: var(--red); }
+.dmg-pending.neutral { color: var(--text3); }
+.dmg-pending.cancel { color: var(--amber); }
+.wait-block { text-align: center; padding: 2rem 0 1.5rem; }
+.wait-title { font-size: 18px; font-weight: 700; margin-bottom: 6px; color: var(--text); }
+.wait-sub { font-size: 13px; color: var(--text2); margin-bottom: 16px; }
+.room-id-display { font-family: var(--mono); font-size: 36px; font-weight: 700; letter-spacing: .2em; color: var(--accent2); padding: 16px; background: var(--bg2); border-radius: var(--radius); border: 1px solid var(--border); margin: 0 auto 12px; display: inline-block; }
+.wait-status { font-size: 13px; color: var(--text2); }
+.dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; }
+.dot--wait { background: var(--amber); animation: pulse 1s infinite alternate; }
+.result-hero { text-align: center; padding: 1.5rem 0 1rem; }
+.result-medal { font-size: 56px; margin-bottom: 8px; }
+.result-title { font-size: 24px; font-weight: 700; color: var(--text); }
+.result-sub { font-size: 14px; color: var(--text2); margin-top: 4px; }
+.result-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 12px; }
+.wrong-list { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px; margin-bottom: 12px; }
+.wrong-list-title { font-size: 13px; color: var(--text2); margin-bottom: 8px; }
+.wrong-row { display: flex; align-items: center; gap: 8px; padding: 5px 0; border-bottom: 1px solid var(--border); font-size: 13px; color: var(--text); }
+.wrong-row:last-child { border-bottom: none; }
+.wrong-name { flex: 1; }
+.wrong-given { color: var(--text3); font-family: var(--mono); font-size: 12px; }
+.wrong-arrow { color: var(--text3); }
+.wrong-ans { font-weight: 700; color: var(--green); font-family: var(--mono); }
+.error-msg { color: var(--red); font-size: 13px; margin-top: 8px; text-align: center; min-height: 20px; }
+.bonus-pop { position: fixed; top: 38%; left: 50%; transform: translate(-50%,-50%); font-size: 22px; font-weight: 700; color: var(--green); pointer-events: none; animation: popUp 0.9s ease forwards; z-index: 999; text-shadow: 0 0 20px rgba(77,255,154,0.5); }
+@keyframes popUp { 0%{opacity:1;transform:translate(-50%,-50%) scale(1)} 100%{opacity:0;transform:translate(-50%,-140%) scale(1.4)} }
+@keyframes countPop { 0%{opacity:0;transform:scale(0.5)} 50%{opacity:1;transform:scale(1.2)} 100%{opacity:1;transform:scale(1)} }
+@media (max-width: 400px) { .stats-row { grid-template-columns: repeat(3, 1fr); } .stat--timer { grid-column: span 2; } .result-stats { grid-template-columns: 1fr 1fr; } }
+</style>
 </head>
 <body>
-  <div id="app">
+<div id="app">
 
-    <!-- ===== MODE SELECT ===== -->
-    <div id="screen-mode" class="screen active">
-      <div class="title-block">
-        <div class="title-label">CHEMISTRY QUIZ</div>
-        <h1 class="title-main">化学式マスター</h1>
-        <p class="title-sub">日本語名から化学式を4択で選ぼう</p>
+  <!-- MODE SELECT -->
+  <div id="screen-mode" class="screen active">
+    <div class="title-block">
+      <div class="title-label">CHEMISTRY QUIZ</div>
+      <h1 class="title-main">化学式マスター</h1>
+      <p class="title-sub">日本語名から化学式を4択で選ぼう</p>
+    </div>
+    <div class="mode-grid">
+      <button class="mode-card" onclick="goMode('solo')">
+        <span class="mode-icon">🧪</span><span class="mode-name">1人モード</span>
+        <span class="mode-desc">タイムアタック<br>スコアを競おう</span>
+      </button>
+      <button class="mode-card mode-card--battle" onclick="showS('multi-top')">
+        <span class="mode-icon">⚔️</span><span class="mode-name">2人対戦</span>
+        <span class="mode-desc">別デバイスで対戦<br>HPを削り合え</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- SOLO HOME -->
+  <div id="screen-solo-home" class="screen">
+    <div class="page-header"><button class="back-btn" onclick="showS('mode')">← 戻る</button><h2>1人モード</h2></div>
+    <div class="card">
+      <div class="card-label">難易度</div>
+      <div class="diff-grid">
+        <button class="diff-btn" data-d="easy"><span class="diff-name">かんたん</span><span class="diff-desc">1価イオン中心 / スキップ無制限</span></button>
+        <button class="diff-btn sel" data-d="normal"><span class="diff-name">ふつう</span><span class="diff-desc">多価イオン含む / スキップ3回</span></button>
+        <button class="diff-btn" data-d="hard"><span class="diff-name">むずかしい</span><span class="diff-desc">全範囲・時間ボーナス / スキップ1回</span></button>
+        <button class="diff-btn diff-btn--oni" data-d="oni"><span class="diff-name">鬼</span><span class="diff-desc">全範囲・時間ボーナス / スキップなし</span></button>
       </div>
-      <div class="mode-grid">
-        <button class="mode-card" onclick="goMode('solo')">
-          <span class="mode-icon">🧪</span>
-          <span class="mode-name">1人モード</span>
-          <span class="mode-desc">タイムアタック<br>スコアを競おう</span>
-        </button>
-        <button class="mode-card mode-card--battle" onclick="showS('multi-top')">
-          <span class="mode-icon">⚔️</span>
-          <span class="mode-name">2人対戦</span>
-          <span class="mode-desc">別デバイスで対戦<br>HPを削り合え</span>
-        </button>
+      <div class="hint-box">むずかしい・鬼は5問連続正答から時間ボーナス（残り30s以上+2.0s / 15〜30s +1.5s / 15s未満 +1.0s）</div>
+    </div>
+    <div class="card"><div class="card-label">プレイヤー名</div><input id="solo-name" type="text" maxlength="10" placeholder="名前（最大10文字）" class="text-input" /></div>
+    <button class="btn btn--primary btn--full" onclick="startSolo()">スタート</button>
+  </div>
+
+  <!-- SOLO GAME -->
+  <div id="screen-solo-game" class="screen">
+    <div class="stats-row">
+      <div class="stat"><div class="stat-label">スコア</div><div class="stat-value" id="sg-score">0</div></div>
+      <div class="stat"><div class="stat-label">正解</div><div class="stat-value" id="sg-cor">0</div></div>
+      <div class="stat"><div class="stat-label">コンボ</div><div class="stat-value" id="sg-combo">0</div></div>
+      <div class="stat"><div class="stat-label">スキップ</div><div class="stat-value" id="sg-skip">-</div></div>
+      <div class="stat stat--timer"><div class="stat-label">残り</div><div class="stat-value" id="sg-timer">40</div></div>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" id="sg-prog"></div></div>
+    <div class="question-card">
+      <div class="question-label">次の化合物の化学式はどれ？</div>
+      <div class="question-text" id="sg-name"></div>
+      <div class="bonus-msg" id="sg-bonus"></div>
+    </div>
+    <div class="choices-grid" id="sg-choices"></div>
+    <div class="action-row">
+      <button class="btn btn--skip" id="sg-skip-btn" onclick="soloSkip()">スキップ</button>
+      <button class="btn btn--end" onclick="soloEnd()">終了</button>
+    </div>
+  </div>
+
+  <!-- SOLO RESULT -->
+  <div id="screen-solo-result" class="screen">
+    <div class="result-hero">
+      <div class="result-medal" id="sr-medal"></div>
+      <div class="result-title" id="sr-title"></div>
+      <div class="result-sub" id="sr-sub"></div>
+    </div>
+    <div class="result-stats">
+      <div class="stat"><div class="stat-label">スコア</div><div class="stat-value stat-value--accent" id="sr-score"></div></div>
+      <div class="stat"><div class="stat-label">正解数</div><div class="stat-value" id="sr-cor"></div></div>
+      <div class="stat"><div class="stat-label">正答率</div><div class="stat-value" id="sr-rate"></div></div>
+      <div class="stat"><div class="stat-label">最高コンボ</div><div class="stat-value" id="sr-mc"></div></div>
+    </div>
+    <div id="sr-wrongs"></div>
+    <div class="btn-row">
+      <button class="btn btn--primary" onclick="startSolo()">もう一度</button>
+      <button class="btn" onclick="showS('solo-home')">メニュー</button>
+    </div>
+  </div>
+
+  <!-- MULTI TOP -->
+  <div id="screen-multi-top" class="screen">
+    <div class="page-header"><button class="back-btn" onclick="showS('mode')">← 戻る</button><h2>2人対戦</h2></div>
+    <div class="mode-grid">
+      <button class="mode-card" onclick="showS('multi-setup')">
+        <span class="mode-icon">🏠</span><span class="mode-name">ルームを作る</span>
+        <span class="mode-desc">難易度・時間を設定して<br>ルームIDを発行</span>
+      </button>
+      <button class="mode-card mode-card--battle" onclick="showS('multi-join')">
+        <span class="mode-icon">🚪</span><span class="mode-name">ルームに参加</span>
+        <span class="mode-desc">ルームIDを入力して<br>対戦に参加</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- MULTI SETUP -->
+  <div id="screen-multi-setup" class="screen">
+    <div class="page-header"><button class="back-btn" onclick="showS('multi-top')">← 戻る</button><h2>ルームを作る</h2></div>
+    <div class="card"><div class="card-label">あなたの名前</div><input id="multi-name" type="text" maxlength="10" placeholder="名前（最大10文字）" class="text-input" /></div>
+    <div class="card">
+      <div class="card-label">難易度</div>
+      <div class="diff-grid">
+        <button class="diff-btn" data-md="easy"><span class="diff-name">かんたん</span></button>
+        <button class="diff-btn sel" data-md="normal"><span class="diff-name">ふつう</span></button>
+        <button class="diff-btn" data-md="hard"><span class="diff-name">むずかしい</span></button>
+        <button class="diff-btn diff-btn--oni" data-md="oni"><span class="diff-name">鬼</span></button>
       </div>
     </div>
-
-    <!-- ===== SOLO HOME ===== -->
-    <div id="screen-solo-home" class="screen">
-      <div class="page-header">
-        <button class="back-btn" onclick="showS('mode')">← 戻る</button>
-        <h2>1人モード</h2>
+    <div class="card">
+      <div class="card-label">制限時間</div>
+      <div class="time-grid">
+        <button class="time-btn" data-t="60">1分</button>
+        <button class="time-btn sel" data-t="90">1分30秒</button>
+        <button class="time-btn" data-t="120">2分</button>
+        <button class="time-btn" data-t="0">無制限</button>
       </div>
-      <div class="card">
-        <div class="card-label">難易度</div>
-        <div class="diff-grid">
-          <button class="diff-btn" data-d="easy">
-            <span class="diff-name">かんたん</span>
-            <span class="diff-desc">1価イオン中心 / スキップ無制限</span>
-          </button>
-          <button class="diff-btn sel" data-d="normal">
-            <span class="diff-name">ふつう</span>
-            <span class="diff-desc">多価イオン含む / スキップ3回</span>
-          </button>
-          <button class="diff-btn" data-d="hard">
-            <span class="diff-name">むずかしい</span>
-            <span class="diff-desc">全範囲・時間ボーナス / スキップ1回</span>
-          </button>
-          <button class="diff-btn diff-btn--oni" data-d="oni">
-            <span class="diff-name">鬼</span>
-            <span class="diff-desc">全範囲・時間ボーナス / スキップなし</span>
-          </button>
+    </div>
+    <button class="btn btn--primary btn--full" onclick="createRoom()">ルームを作る</button>
+  </div>
+
+  <!-- MULTI JOIN -->
+  <div id="screen-multi-join" class="screen">
+    <div class="page-header"><button class="back-btn" onclick="showS('multi-top')">← 戻る</button><h2>ルームに参加</h2></div>
+    <div class="card"><div class="card-label">あなたの名前</div><input id="join-name" type="text" maxlength="10" placeholder="名前（最大10文字）" class="text-input" /></div>
+    <div class="card">
+      <div class="card-label">ルームID（6桁）</div>
+      <input id="join-room-id" type="text" maxlength="6" placeholder="例: ABC123" class="text-input" style="font-family:var(--mono);font-size:22px;letter-spacing:.12em;" oninput="this.value=this.value.toUpperCase()" />
+    </div>
+    <button class="btn btn--primary btn--full" onclick="joinRoom()">参加する</button>
+    <div id="join-error" class="error-msg"></div>
+  </div>
+
+  <!-- MULTI READY -->
+  <div id="screen-multi-ready" class="screen">
+    <div class="wait-block">
+      <div class="wait-title">対戦相手が見つかりました！</div>
+      <div style="display:flex;justify-content:center;gap:24px;margin:20px 0;">
+        <div style="text-align:center;">
+          <div style="font-size:13px;color:var(--text2);margin-bottom:6px;" id="ready-my-name">あなた</div>
+          <div id="ready-my-status" style="font-size:28px;">⏳</div>
         </div>
-        <div class="hint-box">むずかしい・鬼は5問連続正答から時間ボーナス（残り30s以上+2.0s / 15〜30s +1.5s / 15s未満 +1.0s）</div>
-      </div>
-      <div class="card">
-        <div class="card-label">プレイヤー名</div>
-        <input id="solo-name" type="text" maxlength="10" placeholder="名前（最大10文字）" class="text-input" />
-      </div>
-      <button class="btn btn--primary btn--full" onclick="startSolo()">スタート</button>
-    </div>
-
-    <!-- ===== SOLO GAME ===== -->
-    <div id="screen-solo-game" class="screen">
-      <div class="stats-row">
-        <div class="stat"><div class="stat-label">スコア</div><div class="stat-value" id="sg-score">0</div></div>
-        <div class="stat"><div class="stat-label">正解</div><div class="stat-value" id="sg-cor">0</div></div>
-        <div class="stat"><div class="stat-label">コンボ</div><div class="stat-value" id="sg-combo">0</div></div>
-        <div class="stat"><div class="stat-label">スキップ</div><div class="stat-value" id="sg-skip">-</div></div>
-        <div class="stat stat--timer"><div class="stat-label">残り</div><div class="stat-value" id="sg-timer">40</div></div>
-      </div>
-      <div class="progress-bar"><div class="progress-fill" id="sg-prog"></div></div>
-      <div class="question-card">
-        <div class="question-label">次の化合物の化学式はどれ？</div>
-        <div class="question-text" id="sg-name"></div>
-        <div class="bonus-msg" id="sg-bonus"></div>
-      </div>
-      <div class="choices-grid" id="sg-choices"></div>
-      <div class="action-row">
-        <button class="btn btn--skip" id="sg-skip-btn" onclick="soloSkip()">スキップ</button>
-        <button class="btn btn--end" onclick="soloEnd()">終了</button>
-      </div>
-    </div>
-
-    <!-- ===== SOLO RESULT ===== -->
-    <div id="screen-solo-result" class="screen">
-      <div class="result-hero">
-        <div class="result-medal" id="sr-medal"></div>
-        <div class="result-title" id="sr-title"></div>
-        <div class="result-sub" id="sr-sub"></div>
-      </div>
-      <div class="result-stats">
-        <div class="stat"><div class="stat-label">スコア</div><div class="stat-value stat-value--accent" id="sr-score"></div></div>
-        <div class="stat"><div class="stat-label">正解数</div><div class="stat-value" id="sr-cor"></div></div>
-        <div class="stat"><div class="stat-label">正答率</div><div class="stat-value" id="sr-rate"></div></div>
-        <div class="stat"><div class="stat-label">最高コンボ</div><div class="stat-value" id="sr-mc"></div></div>
-      </div>
-      <div id="sr-wrongs"></div>
-      <div class="btn-row">
-        <button class="btn btn--primary" onclick="startSolo()">もう一度</button>
-        <button class="btn" onclick="showS('solo-home')">メニュー</button>
-      </div>
-    </div>
-
-    <!-- ===== MULTI TOP ===== -->
-    <div id="screen-multi-top" class="screen">
-      <div class="page-header">
-        <button class="back-btn" onclick="showS('mode')">← 戻る</button>
-        <h2>2人対戦</h2>
-      </div>
-      <div class="mode-grid">
-        <button class="mode-card" onclick="showS('multi-setup')">
-          <span class="mode-icon">🏠</span>
-          <span class="mode-name">ルームを作る</span>
-          <span class="mode-desc">難易度・時間を設定して<br>ルームIDを発行</span>
-        </button>
-        <button class="mode-card mode-card--battle" onclick="showS('multi-join')">
-          <span class="mode-icon">🚪</span>
-          <span class="mode-name">ルームに参加</span>
-          <span class="mode-desc">ルームIDを入力して<br>対戦に参加</span>
-        </button>
-      </div>
-    </div>
-
-    <!-- ===== MULTI SETUP（ルーム作成専用） ===== -->
-    <div id="screen-multi-setup" class="screen">
-      <div class="page-header">
-        <button class="back-btn" onclick="showS('multi-top')">← 戻る</button>
-        <h2>ルームを作る</h2>
-      </div>
-      <div class="card">
-        <div class="card-label">あなたの名前</div>
-        <input id="multi-name" type="text" maxlength="10" placeholder="名前（最大10文字）" class="text-input" />
-      </div>
-      <div class="card">
-        <div class="card-label">難易度</div>
-        <div class="diff-grid">
-          <button class="diff-btn" data-md="easy"><span class="diff-name">かんたん</span></button>
-          <button class="diff-btn sel" data-md="normal"><span class="diff-name">ふつう</span></button>
-          <button class="diff-btn" data-md="hard"><span class="diff-name">むずかしい</span></button>
-          <button class="diff-btn diff-btn--oni" data-md="oni"><span class="diff-name">鬼</span></button>
-        </div>
-      </div>
-      <div class="card">
-        <div class="card-label">制限時間</div>
-        <div class="time-grid">
-          <button class="time-btn" data-t="60">1分</button>
-          <button class="time-btn sel" data-t="90">1分30秒</button>
-          <button class="time-btn" data-t="120">2分</button>
-          <button class="time-btn" data-t="0">無制限</button>
-        </div>
-      </div>
-      <button class="btn btn--primary btn--full" onclick="createRoom()">ルームを作る</button>
-    </div>
-
-    <!-- ===== MULTI JOIN ===== -->
-    <div id="screen-multi-join" class="screen">
-      <div class="page-header">
-        <button class="back-btn" onclick="showS('multi-top')">← 戻る</button>
-        <h2>ルームに参加</h2>
-      </div>
-      <div class="card">
-        <div class="card-label">あなたの名前</div>
-        <input id="join-name" type="text" maxlength="10" placeholder="名前（最大10文字）" class="text-input" />
-      </div>
-      <div class="card">
-        <div class="card-label">ルームID（6桁）</div>
-        <input id="join-room-id" type="text" maxlength="6" placeholder="例: ABC123" class="text-input text-input--mono text-input--large" oninput="this.value=this.value.toUpperCase()" />
-      </div>
-      <button class="btn btn--primary btn--full" onclick="joinRoom()">参加する</button>
-      <div id="join-error" class="error-msg"></div>
-    </div>
-
-    <!-- ===== MULTI READY ===== -->
-    <div id="screen-multi-ready" class="screen">
-      <div class="wait-block">
-        <div class="wait-title" id="ready-title">対戦相手が見つかりました！</div>
-        <div style="display:flex; justify-content:center; gap:24px; margin: 20px 0;">
-          <div style="text-align:center;">
-            <div style="font-size:13px; color:var(--text2); margin-bottom:6px;" id="ready-my-name">あなた</div>
-            <div id="ready-my-status" style="font-size:28px;">⏳</div>
-          </div>
-          <div style="font-size:24px; color:var(--text3); display:flex; align-items:center;">VS</div>
-          <div style="text-align:center;">
-            <div style="font-size:13px; color:var(--text2); margin-bottom:6px;" id="ready-opp-name">相手</div>
-            <div id="ready-opp-status" style="font-size:28px;">⏳</div>
-          </div>
-        </div>
-        <div style="font-size:13px; color:var(--text2); margin-bottom:20px;" id="ready-msg">準備ができたらReadyを押してください</div>
-        <button class="btn btn--primary btn--full" id="ready-btn" onclick="pressReady()" style="font-size:18px; padding:16px;">Ready？</button>
-      </div>
-      <div id="ready-countdown" style="display:none; text-align:center; padding:2rem 0;">
-        <div style="font-size:80px; font-weight:700; color:var(--accent2);" id="countdown-num">3</div>
-      </div>
-    </div>
-
-    <!-- ===== MULTI WAIT ===== -->
-    <div id="screen-multi-wait" class="screen">
-      <div class="wait-block">
-        <div class="wait-title">対戦相手を待っています</div>
-        <div class="wait-sub">このルームIDを相手に伝えてください</div>
-        <div class="room-id-display" id="wait-room-id">------</div>
-        <div class="wait-status" id="wait-status">
-          <span class="dot dot--wait"></span>相手の参加を待っています…
+        <div style="font-size:24px;color:var(--text3);display:flex;align-items:center;">VS</div>
+        <div style="text-align:center;">
+          <div style="font-size:13px;color:var(--text2);margin-bottom:6px;" id="ready-opp-name">相手</div>
+          <div id="ready-opp-status" style="font-size:28px;">⏳</div>
         </div>
       </div>
-      <button class="btn btn--full" onclick="cancelRoom()">キャンセル</button>
+      <div style="font-size:13px;color:var(--text2);margin-bottom:20px;" id="ready-msg">準備ができたらReadyを押してください</div>
+      <button class="btn btn--primary btn--full" id="ready-btn" onclick="pressReady()" style="font-size:18px;padding:16px;">Ready？</button>
     </div>
+    <div id="ready-countdown" style="display:none;text-align:center;padding:2rem 0;">
+      <div style="font-size:80px;font-weight:700;color:var(--accent2);" id="countdown-num">3</div>
+    </div>
+  </div>
 
-    <!-- ===== MULTI GAME ===== -->
-    <div id="screen-multi-game" class="screen">
-      <div class="hp-section">
-        <div class="hp-row hp-row--me">
-          <div class="hp-label" id="mg-my-name">あなた</div>
-          <div class="hp-bar-bg"><div class="hp-bar-fill hp-fill--me" id="mg-my-hp-bar"></div></div>
-          <div class="hp-num" id="mg-my-hp">20</div>
-        </div>
-        <div class="hp-row hp-row--opp">
-          <div class="hp-label" id="mg-opp-name">相手</div>
-          <div class="hp-bar-bg"><div class="hp-bar-fill hp-fill--opp" id="mg-opp-hp-bar"></div></div>
-          <div class="hp-num" id="mg-opp-hp">20</div>
-        </div>
+  <!-- MULTI WAIT -->
+  <div id="screen-multi-wait" class="screen">
+    <div class="wait-block">
+      <div class="wait-title">対戦相手を待っています</div>
+      <div class="wait-sub">このルームIDを相手に伝えてください</div>
+      <div class="room-id-display" id="wait-room-id">------</div>
+      <div class="wait-status"><span class="dot dot--wait"></span>相手の参加を待っています…</div>
+    </div>
+    <button class="btn btn--full" onclick="cancelRoom()">キャンセル</button>
+  </div>
+
+  <!-- MULTI GAME -->
+  <div id="screen-multi-game" class="screen">
+    <div class="hp-section">
+      <div class="hp-row hp-row--me">
+        <div class="hp-label" id="mg-my-name">あなた</div>
+        <div class="hp-bar-bg"><div class="hp-bar-fill hp-fill--me" id="mg-my-hp-bar"></div></div>
+        <div class="hp-num" id="mg-my-hp">20</div>
       </div>
-      <div class="dmg-pending" id="mg-dmg-pending">－</div>
-      <div class="stats-row stats-row--4">
-        <div class="stat stat--timer"><div class="stat-label">残り時間</div><div class="stat-value" id="mg-timer">-</div></div>
-        <div class="stat"><div class="stat-label">正解数</div><div class="stat-value" id="mg-cor">0</div></div>
-        <div class="stat"><div class="stat-label">コンボ</div><div class="stat-value" id="mg-combo">0</div></div>
-        <div class="stat"><div class="stat-label">スキップ</div><div class="stat-value" id="mg-skip">-</div></div>
-      </div>
-      <div class="progress-bar"><div class="progress-fill" id="mg-prog"></div></div>
-      <div class="question-card">
-        <div class="question-label">化学式はどれ？</div>
-        <div class="question-text" id="mg-name"></div>
-        <div class="bonus-msg" id="mg-bonus"></div>
-      </div>
-      <div class="choices-grid" id="mg-choices"></div>
-      <div class="action-row">
-        <button class="btn btn--skip" id="mg-skip-btn" onclick="multiSkip()">スキップ</button>
-        <button class="btn btn--end" onclick="multiSurrender()">降参</button>
+      <div class="hp-row hp-row--opp">
+        <div class="hp-label" id="mg-opp-name">相手</div>
+        <div class="hp-bar-bg"><div class="hp-bar-fill hp-fill--opp" id="mg-opp-hp-bar"></div></div>
+        <div class="hp-num" id="mg-opp-hp">20</div>
       </div>
     </div>
-
-    <!-- ===== MULTI RESULT ===== -->
-    <div id="screen-multi-result" class="screen">
-      <div class="result-hero">
-        <div class="result-medal" id="mr-medal"></div>
-        <div class="result-title" id="mr-title"></div>
-        <div class="result-sub" id="mr-sub"></div>
-      </div>
-      <div class="result-stats">
-        <div class="stat"><div class="stat-label">正解数</div><div class="stat-value" id="mr-cor"></div></div>
-        <div class="stat"><div class="stat-label">正答率</div><div class="stat-value" id="mr-rate"></div></div>
-        <div class="stat"><div class="stat-label">最高コンボ</div><div class="stat-value" id="mr-mc"></div></div>
-      </div>
-      <div class="btn-row">
-        <button class="btn btn--primary" onclick="showS('multi-top')">もう一度</button>
-        <button class="btn" onclick="showS('mode')">トップへ</button>
-      </div>
+    <div class="dmg-pending neutral" id="mg-dmg-pending">－</div>
+    <div class="stats-row stats-row--4">
+      <div class="stat stat--timer"><div class="stat-label">残り時間</div><div class="stat-value" id="mg-timer">-</div></div>
+      <div class="stat"><div class="stat-label">正解数</div><div class="stat-value" id="mg-cor">0</div></div>
+      <div class="stat"><div class="stat-label">コンボ</div><div class="stat-value" id="mg-combo">0</div></div>
+      <div class="stat"><div class="stat-label">スキップ</div><div class="stat-value" id="mg-skip">-</div></div>
     </div>
+    <div class="progress-bar"><div class="progress-fill" id="mg-prog"></div></div>
+    <div class="question-card">
+      <div class="question-label">化学式はどれ？</div>
+      <div class="question-text" id="mg-name"></div>
+      <div class="bonus-msg" id="mg-bonus"></div>
+    </div>
+    <div class="choices-grid" id="mg-choices"></div>
+    <div class="action-row">
+      <button class="btn btn--skip" id="mg-skip-btn" onclick="multiSkip()">スキップ</button>
+      <button class="btn btn--end" onclick="multiSurrender()">降参</button>
+    </div>
+  </div>
 
-  </div><!-- #app -->
+  <!-- MULTI RESULT -->
+  <div id="screen-multi-result" class="screen">
+    <div class="result-hero">
+      <div class="result-medal" id="mr-medal"></div>
+      <div class="result-title" id="mr-title"></div>
+      <div class="result-sub" id="mr-sub"></div>
+    </div>
+    <div class="result-stats">
+      <div class="stat"><div class="stat-label">正解数</div><div class="stat-value" id="mr-cor"></div></div>
+      <div class="stat"><div class="stat-label">正答率</div><div class="stat-value" id="mr-rate"></div></div>
+      <div class="stat"><div class="stat-label">最高コンボ</div><div class="stat-value" id="mr-mc"></div></div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn--primary" onclick="showS('multi-top')">もう一度</button>
+      <button class="btn" onclick="showS('mode')">トップへ</button>
+    </div>
+  </div>
 
-  <!-- Firebase SDK -->
-  <script type="module" src="firebase-init.js"></script>
-  <script src="questions.js"></script>
-  <script src="game.js"></script>
+</div>
+
+<!-- Firebase -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getDatabase, ref, set, get, onValue, update, remove } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+const firebaseConfig = {
+  apiKey: "AIzaSyC0xwTlnAmvoezp5WpqcY5ihUbatYloxUE",
+  authDomain: "redoxgame1-b5bf0.firebaseapp.com",
+  databaseURL: "https://redoxgame1-b5bf0-default-rtdb.firebaseio.com",
+  projectId: "redoxgame1-b5bf0",
+  storageBucket: "redoxgame1-b5bf0.firebasestorage.app",
+  messagingSenderId: "250365886256",
+  appId: "1:250365886256:web:4d937b82539209d8ca52f5"
+};
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+window._fb = { db, ref, set, get, onValue, update, remove };
+</script>
+
+<script>
+const OTHER=[
+  {name:'一酸化炭素',ans:'CO',type:'other'},{name:'二酸化炭素',ans:'CO2',type:'other'},
+  {name:'二酸化硫黄',ans:'SO2',type:'other'},{name:'三酸化硫黄',ans:'SO3',type:'other'},
+  {name:'一酸化窒素',ans:'NO',type:'other'},{name:'二酸化窒素',ans:'NO2',type:'other'},
+  {name:'四酸化二窒素',ans:'N2O4',type:'other'},{name:'二酸化ケイ素',ans:'SiO2',type:'other'},
+  {name:'十酸化四リン',ans:'P4O10',type:'other'},{name:'アンモニア',ans:'NH3',type:'other'},
+  {name:'過酸化水素',ans:'H2O2',type:'other'},{name:'メタン',ans:'CH4',type:'other'},
+  {name:'酢酸',ans:'CH3COOH',type:'other'},{name:'リン酸',ans:'H3PO4',type:'other'},
+  {name:'亜硫酸',ans:'H2SO3',type:'other'},{name:'亜硝酸',ans:'HNO2',type:'other'},
+  {name:'炭酸水素ナトリウム',ans:'NaHCO3',type:'other'},{name:'硫酸水素ナトリウム',ans:'NaHSO4',type:'other'},
+  {name:'炭酸リチウム',ans:'Li2CO3',type:'other'},{name:'酸化銅(Ⅰ)',ans:'Cu2O',type:'other'},
+  {name:'過マンガン酸カリウム',ans:'KMnO4',type:'other'},{name:'二クロム酸カリウム',ans:'K2Cr2O7',type:'other'},
+  {name:'クロム酸カリウム',ans:'K2CrO4',type:'other'},{name:'酸化鉛(Ⅳ)',ans:'PbO2',type:'other'},
+  {name:'亜硫酸ナトリウム',ans:'Na2SO3',type:'other'},{name:'亜硫酸水素ナトリウム',ans:'NaHSO3',type:'other'},
+];
+const ION={
+  easy:[
+    {name:'フッ化水素',c:'H',cv:1,a:'F',av:1,ans:'HF'},{name:'塩化水素',c:'H',cv:1,a:'Cl',av:1,ans:'HCl'},
+    {name:'臭化水素',c:'H',cv:1,a:'Br',av:1,ans:'HBr'},{name:'ヨウ化水素',c:'H',cv:1,a:'I',av:1,ans:'HI'},
+    {name:'フッ化ナトリウム',c:'Na',cv:1,a:'F',av:1,ans:'NaF'},{name:'塩化ナトリウム',c:'Na',cv:1,a:'Cl',av:1,ans:'NaCl'},
+    {name:'臭化ナトリウム',c:'Na',cv:1,a:'Br',av:1,ans:'NaBr'},{name:'ヨウ化ナトリウム',c:'Na',cv:1,a:'I',av:1,ans:'NaI'},
+    {name:'水酸化ナトリウム',c:'Na',cv:1,a:'OH',av:1,ans:'NaOH'},{name:'硫化ナトリウム',c:'Na',cv:1,a:'S',av:2,ans:'Na2S'},
+    {name:'塩化カリウム',c:'K',cv:1,a:'Cl',av:1,ans:'KCl'},{name:'臭化カリウム',c:'K',cv:1,a:'Br',av:1,ans:'KBr'},
+    {name:'ヨウ化カリウム',c:'K',cv:1,a:'I',av:1,ans:'KI'},{name:'フッ化カリウム',c:'K',cv:1,a:'F',av:1,ans:'KF'},
+    {name:'水酸化カリウム',c:'K',cv:1,a:'OH',av:1,ans:'KOH'},{name:'硫化カリウム',c:'K',cv:1,a:'S',av:2,ans:'K2S'},
+    {name:'塩化銀',c:'Ag',cv:1,a:'Cl',av:1,ans:'AgCl'},{name:'臭化銀',c:'Ag',cv:1,a:'Br',av:1,ans:'AgBr'},
+    {name:'ヨウ化銀',c:'Ag',cv:1,a:'I',av:1,ans:'AgI'},{name:'フッ化銀',c:'Ag',cv:1,a:'F',av:1,ans:'AgF'},
+  ],
+  normal:[
+    {name:'塩化カルシウム',c:'Ca',cv:2,a:'Cl',av:1,ans:'CaCl2'},{name:'塩化マグネシウム',c:'Mg',cv:2,a:'Cl',av:1,ans:'MgCl2'},
+    {name:'塩化バリウム',c:'Ba',cv:2,a:'Cl',av:1,ans:'BaCl2'},{name:'塩化鉄(Ⅱ)',c:'Fe',cv:2,a:'Cl',av:1,ans:'FeCl2'},
+    {name:'塩化鉄(Ⅲ)',c:'Fe',cv:3,a:'Cl',av:1,ans:'FeCl3'},{name:'塩化銅(Ⅱ)',c:'Cu',cv:2,a:'Cl',av:1,ans:'CuCl2'},
+    {name:'塩化アルミニウム',c:'Al',cv:3,a:'Cl',av:1,ans:'AlCl3'},{name:'酸化カルシウム',c:'Ca',cv:2,a:'O',av:2,ans:'CaO'},
+    {name:'酸化マグネシウム',c:'Mg',cv:2,a:'O',av:2,ans:'MgO'},{name:'酸化鉄(Ⅱ)',c:'Fe',cv:2,a:'O',av:2,ans:'FeO'},
+    {name:'酸化銅(Ⅱ)',c:'Cu',cv:2,a:'O',av:2,ans:'CuO'},{name:'酸化亜鉛',c:'Zn',cv:2,a:'O',av:2,ans:'ZnO'},
+    {name:'酸化アルミニウム',c:'Al',cv:3,a:'O',av:2,ans:'Al2O3'},{name:'酸化鉄(Ⅲ)',c:'Fe',cv:3,a:'O',av:2,ans:'Fe2O3'},
+    {name:'水酸化カルシウム',c:'Ca',cv:2,a:'OH',av:1,ans:'Ca(OH)2'},{name:'水酸化マグネシウム',c:'Mg',cv:2,a:'OH',av:1,ans:'Mg(OH)2'},
+    {name:'水酸化銅(Ⅱ)',c:'Cu',cv:2,a:'OH',av:1,ans:'Cu(OH)2'},{name:'水酸化アルミニウム',c:'Al',cv:3,a:'OH',av:1,ans:'Al(OH)3'},
+    {name:'硫化亜鉛',c:'Zn',cv:2,a:'S',av:2,ans:'ZnS'},{name:'硫化鉛(Ⅱ)',c:'Pb',cv:2,a:'S',av:2,ans:'PbS'},
+  ],
+  hard:[
+    {name:'硝酸ナトリウム',c:'Na',cv:1,a:'NO3',av:1,ans:'NaNO3'},{name:'硝酸カルシウム',c:'Ca',cv:2,a:'NO3',av:1,ans:'Ca(NO3)2'},
+    {name:'硝酸カリウム',c:'K',cv:1,a:'NO3',av:1,ans:'KNO3'},{name:'硝酸銀',c:'Ag',cv:1,a:'NO3',av:1,ans:'AgNO3'},
+    {name:'硫酸ナトリウム',c:'Na',cv:1,a:'SO4',av:2,ans:'Na2SO4'},{name:'硫酸カルシウム',c:'Ca',cv:2,a:'SO4',av:2,ans:'CaSO4'},
+    {name:'硫酸バリウム',c:'Ba',cv:2,a:'SO4',av:2,ans:'BaSO4'},{name:'硫酸マグネシウム',c:'Mg',cv:2,a:'SO4',av:2,ans:'MgSO4'},
+    {name:'硫酸銅(Ⅱ)',c:'Cu',cv:2,a:'SO4',av:2,ans:'CuSO4'},{name:'硫酸鉄(Ⅱ)',c:'Fe',cv:2,a:'SO4',av:2,ans:'FeSO4'},
+    {name:'硫酸鉄(Ⅲ)',c:'Fe',cv:3,a:'SO4',av:2,ans:'Fe2(SO4)3'},{name:'硫酸アルミニウム',c:'Al',cv:3,a:'SO4',av:2,ans:'Al2(SO4)3'},
+    {name:'硫酸鉛(Ⅱ)',c:'Pb',cv:2,a:'SO4',av:2,ans:'PbSO4'},{name:'炭酸ナトリウム',c:'Na',cv:1,a:'CO3',av:2,ans:'Na2CO3'},
+    {name:'炭酸カルシウム',c:'Ca',cv:2,a:'CO3',av:2,ans:'CaCO3'},{name:'炭酸マグネシウム',c:'Mg',cv:2,a:'CO3',av:2,ans:'MgCO3'},
+    {name:'塩化アンモニウム',c:'NH4',cv:1,a:'Cl',av:1,ans:'NH4Cl'},{name:'硫酸アンモニウム',c:'NH4',cv:1,a:'SO4',av:2,ans:'(NH4)2SO4'},
+    {name:'硝酸アンモニウム',c:'NH4',cv:1,a:'NO3',av:1,ans:'NH4NO3'},{name:'炭酸アンモニウム',c:'NH4',cv:1,a:'CO3',av:2,ans:'(NH4)2CO3'},
+  ],
+};
+ION.oni=ION.hard;
+
+function toSubHTML(f){return f.replace(/([0-9]+)/g,'<sub>$1</sub>');}
+function shuffle(a){const r=[...a];for(let i=r.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[r[i],r[j]]=[r[j],r[i]];}return r;}
+function gcd(a,b){return b===0?a:gcd(b,a%b);}
+function showS(n){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById('screen-'+n).classList.add('active');}
+function showPop(text){const el=document.createElement('div');el.className='bonus-pop';el.textContent=text;document.body.appendChild(el);setTimeout(()=>el.remove(),950);}
+function goMode(m){showS(m==='solo'?'solo-home':'multi-top');}
+
+let _queue=[];
+function makeQueue(diff){const ik=diff==='oni'?'hard':diff;return shuffle([...ION[ik],...shuffle(OTHER).slice(0,24)]);}
+function nextQ(diff){if(!_queue.length)_queue=makeQueue(diff);return _queue.shift();}
+function genWC(q){const{c,cv,a,av}=q,g=gcd(cv,av),cNc=av/g,cNa=cv/g;return[[1,1],[1,2],[1,3],[2,1],[2,2],[2,3],[3,1],[3,2],[3,3]].filter(([nc,na])=>!(nc===cNc&&na===cNa)).slice(0,4).map(([nc,na])=>{const pA=na>1&&a.length>2,pC=nc>1&&c.length>2;return(pC?'('+c+')'+nc:c+(nc===1?'':nc))+(pA?'('+a+')'+na:a+(na===1?'':na));});}
+function makeChoices(q,diff){const ik=diff==='oni'?'hard':diff;const correct=q.ans,used=new Set([correct]);const d=[];if(q.type==='other'){for(const p of shuffle(OTHER)){if(!used.has(p.ans)&&d.length<3){used.add(p.ans);d.push(p.ans);}}}else{const ip=ION[ik];for(const p of shuffle(ip.filter(p=>p.c===q.c&&p.ans!==correct))){if(!used.has(p.ans)&&d.length<2){used.add(p.ans);d.push(p.ans);}}for(const p of shuffle(ip.filter(p=>p.a===q.a&&p.ans!==correct))){if(!used.has(p.ans)&&d.length<3){used.add(p.ans);d.push(p.ans);}}if(d.length<3){for(const w of genWC(q)){if(!used.has(w)&&d.length<3){used.add(w);d.push(w);}}}for(const p of shuffle([...ip,...OTHER])){if(d.length>=3)break;if(!used.has(p.ans)){used.add(p.ans);d.push(p.ans);}}}return shuffle([correct,...d.slice(0,3)]);}
+
+document.querySelectorAll('[data-d]').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('[data-d]').forEach(x=>x.classList.remove('sel'));b.classList.add('sel');S.pendingDiff=b.dataset.d;}));
+document.querySelectorAll('[data-md]').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('[data-md]').forEach(x=>x.classList.remove('sel'));b.classList.add('sel');M.pendingDiff=b.dataset.md;}));
+document.querySelectorAll('[data-t]').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('[data-t]').forEach(x=>x.classList.remove('sel'));b.classList.add('sel');M.pendingTime=parseInt(b.dataset.t);}));
+
+const SOLO_CFG={easy:{skipMax:Infinity,timeBonus:false,pts:80},normal:{skipMax:3,timeBonus:false,pts:120},hard:{skipMax:1,timeBonus:true,pts:160},oni:{skipMax:0,timeBonus:true,pts:200}};
+const SOLO_TIME=40;
+const S={pendingDiff:'normal'};
+
+function startSolo(){clearInterval(S.iv);_queue=[];S.diff=S.pendingDiff||'normal';S.name=(document.getElementById('solo-name').value.trim()||'プレイヤー').slice(0,10);S.cfg=SOLO_CFG[S.diff];S.score=0;S.correct=0;S.answered=0;S.combo=0;S.maxCombo=0;S.skips=S.cfg.skipMax;S.wrongs=[];S.timeLeft=SOLO_TIME;S.qAnswered=false;showS('solo-game');updateSoloSkipUI();soloLoadQ();soloStartTimer();}
+function soloStartTimer(){clearInterval(S.iv);S.iv=setInterval(()=>{S.timeLeft=Math.max(0,S.timeLeft-0.1);soloUpdateTimer();if(S.timeLeft<=0){clearInterval(S.iv);soloFinish();}},100);}
+function soloUpdateTimer(){const t=S.timeLeft,el=document.getElementById('sg-timer');el.textContent=Math.ceil(t);el.className='stat-value';if(t<=5)el.classList.add('timer-danger');else if(t<=10)el.classList.add('timer-warn');const pct=t/SOLO_TIME*100;const bar=document.getElementById('sg-prog');bar.style.width=pct+'%';bar.className='progress-fill'+(t<=5?' prog-danger':t<=10?' prog-warn':'');}
+function updateSoloSkipUI(){const btn=document.getElementById('sg-skip-btn');const sl=S.skips;if(S.cfg.skipMax===0){btn.style.display='none';return;}btn.style.display='';if(sl===Infinity){btn.textContent='スキップ';btn.disabled=false;}else if(sl>0){btn.textContent=`スキップ（残${sl}）`;btn.disabled=false;}else{btn.textContent='スキップ不可';btn.disabled=true;}}
+function soloLoadQ(){S.qAnswered=false;const q=nextQ(S.diff);S.currentQ=q;document.getElementById('sg-name').textContent=q.name;document.getElementById('sg-bonus').textContent='';const box=document.getElementById('sg-choices');box.innerHTML='';makeChoices(q,S.diff).forEach(ch=>{const b=document.createElement('button');b.className='choice-btn';b.innerHTML=toSubHTML(ch);b.dataset.ans=ch;b.onclick=()=>soloPick(b,ch,q);box.appendChild(b);});}
+function soloPick(btn,chosen,q){if(S.qAnswered)return;S.qAnswered=true;S.answered++;const ok=chosen===q.ans;document.querySelectorAll('#sg-choices .choice-btn').forEach(b=>{b.disabled=true;if(b.dataset.ans===q.ans)b.classList.add(ok?'correct':'reveal');});if(ok){btn.classList.add('correct');S.correct++;S.combo++;if(S.combo>S.maxCombo)S.maxCombo=S.combo;S.score+=S.cfg.pts+Math.min(S.combo-1,8)*10;if(S.cfg.timeBonus&&S.combo>=5){const t=S.timeLeft;const bonus=t>=30?2.0:t>=15?1.5:1.0;S.timeLeft=Math.min(SOLO_TIME,S.timeLeft+bonus);showPop('+'+bonus.toFixed(1)+'s');document.getElementById('sg-bonus').textContent=`🔥 コンボ${S.combo}連！ +${bonus.toFixed(1)}秒`;}}else{btn.classList.add('wrong');S.combo=0;S.wrongs.push({q,chosen});}document.getElementById('sg-score').textContent=S.score;document.getElementById('sg-cor').textContent=S.correct;document.getElementById('sg-combo').textContent=S.combo;setTimeout(()=>soloLoadQ(),700);}
+function soloSkip(){if(S.qAnswered)return;if(S.cfg.skipMax!==Infinity&&S.skips<=0)return;if(S.cfg.skipMax!==Infinity)S.skips--;S.qAnswered=true;updateSoloSkipUI();document.querySelectorAll('#sg-choices .choice-btn').forEach(b=>b.disabled=true);document.getElementById('sg-bonus').textContent='スキップ';setTimeout(()=>soloLoadQ(),400);}
+function soloEnd(){clearInterval(S.iv);soloFinish();}
+function soloFinish(){clearInterval(S.iv);const rate=S.answered>0?Math.round(S.correct/S.answered*100):0;let medal='🥉',title='もう少し！',sub='';if(S.correct>=15&&rate>=85){medal='🏆';title='完璧！';sub='化学式マスター！';}else if(rate>=75){medal='🥇';title='すばらしい！';}else if(rate>=55){medal='🥈';title='まあまあ！';}document.getElementById('sr-medal').textContent=medal;document.getElementById('sr-title').textContent=title;document.getElementById('sr-sub').textContent=sub;document.getElementById('sr-score').textContent=S.score.toLocaleString();document.getElementById('sr-cor').textContent=S.correct+'問';document.getElementById('sr-rate').textContent=S.answered>0?rate+'%':'-%';document.getElementById('sr-mc').textContent=S.maxCombo;const wl=document.getElementById('sr-wrongs');if(S.wrongs.length>0){let h=`<div class="wrong-list"><div class="wrong-list-title">間違えた問題（${S.wrongs.length}問）</div>`;S.wrongs.slice(0,8).forEach(w=>{h+=`<div class="wrong-row"><span class="wrong-name">${w.q.name}</span><span class="wrong-given">${toSubHTML(w.chosen)}</span><span class="wrong-arrow">→</span><span class="wrong-ans">${toSubHTML(w.q.ans)}</span></div>`;});if(S.wrongs.length>8)h+=`<div style="font-size:12px;color:var(--text3);margin-top:4px;">他 ${S.wrongs.length-8} 問</div>`;h+='</div>';wl.innerHTML=h;}else{wl.innerHTML='';}showS('solo-result');}
+
+const MAX_HP=20;
+const MULTI_SKIP={easy:Infinity,normal:3,hard:1,oni:0};
+const M={pendingDiff:'normal',pendingTime:90};
+function fb(){return window._fb;}
+function roomRef(id){return fb().ref(fb().db,'rooms/'+id);}
+function genRoomId(){const c='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';return Array.from({length:6},()=>c[Math.floor(Math.random()*c.length)]).join('');}
+
+async function createRoom(){
+  const name=(document.getElementById('multi-name').value.trim()||'プレイヤー1').slice(0,10);
+  const roomId=genRoomId();
+  M.roomId=roomId;M.role='host';M.myName=name;M.diff=M.pendingDiff;M.timeLimit=M.pendingTime;
+  await fb().set(roomRef(roomId),{host:name,diff:M.diff,timeLimit:M.timeLimit,state:'waiting',hostHP:MAX_HP,guestHP:MAX_HP,pendingToHost:0,pendingToGuest:0,pendTimeHost:0,pendTimeGuest:0,gameStart:0,hostReady:false,guestReady:false});
+  document.getElementById('wait-room-id').textContent=roomId;
+  showS('multi-wait');
+  M.waitUnsub=fb().onValue(roomRef(roomId),snap=>{
+    const d=snap.val();if(!d)return;
+    if(d.state==='matched'){const u=M.waitUnsub;M.waitUnsub=null;if(u)u();M.guestName=d.guest;showReadyScreen(d);}
+  });
+}
+
+async function joinRoom(){
+  const name=(document.getElementById('join-name').value.trim()||'プレイヤー2').slice(0,10);
+  const rid=document.getElementById('join-room-id').value.trim().toUpperCase();
+  const errEl=document.getElementById('join-error');errEl.textContent='';
+  if(rid.length!==6){errEl.textContent='6桁のIDを入力してください';return;}
+  const snap=await fb().get(roomRef(rid));
+  if(!snap.exists()){errEl.textContent='ルームが見つかりません';return;}
+  const d=snap.val();
+  if(d.state!=='waiting'){errEl.textContent='このルームはすでに開始しています';return;}
+  M.roomId=rid;M.role='guest';M.myName=name;M.diff=d.diff;M.timeLimit=d.timeLimit;
+  await fb().update(roomRef(rid),{guest:name,state:'matched'});
+  const snap2=await fb().get(roomRef(rid));
+  M.guestName=name;showReadyScreen(snap2.val());
+}
+
+async function cancelRoom(){if(M.waitUnsub){M.waitUnsub();M.waitUnsub=null;}await fb().remove(roomRef(M.roomId));showS('multi-top');}
+
+function showReadyScreen(roomData){
+  if(M.waitUnsub){M.waitUnsub();M.waitUnsub=null;}
+  if(M.readyUnsub){M.readyUnsub();M.readyUnsub=null;}
+  M.countingDown=false;
+  const oppName=M.role==='host'?(roomData.guest||'相手'):roomData.host;
+  M.oppName=oppName;
+  document.getElementById('ready-my-name').textContent=M.myName;
+  document.getElementById('ready-opp-name').textContent=oppName;
+  document.getElementById('ready-my-status').textContent='⏳';
+  document.getElementById('ready-opp-status').textContent='⏳';
+  document.getElementById('ready-msg').textContent='準備ができたらReadyを押してください';
+  document.getElementById('ready-btn').style.display='';
+  document.getElementById('ready-countdown').style.display='none';
+  document.getElementById('ready-btn').disabled=false;
+  showS('multi-ready');
+  M.readyUnsub=fb().onValue(roomRef(M.roomId),snap=>{
+    const d=snap.val();if(!d)return;
+    const myKey=M.role==='host'?'hostReady':'guestReady';
+    const oppKey=M.role==='host'?'guestReady':'hostReady';
+    document.getElementById('ready-my-status').textContent=d[myKey]?'✅':'⏳';
+    document.getElementById('ready-opp-status').textContent=d[oppKey]?'✅':'⏳';
+    if(d.hostReady&&d.guestReady&&d.state==='matched'){
+      if(M.role==='host')fb().update(roomRef(M.roomId),{state:'countdown',gameStart:Date.now()+4000});
+    }
+    if(d.state==='countdown'&&!M.countingDown){
+      M.countingDown=true;const u=M.readyUnsub;M.readyUnsub=null;if(u)u();startCountdown(d);
+    }
+  });
+}
+
+async function pressReady(){
+  document.getElementById('ready-btn').disabled=true;
+  document.getElementById('ready-msg').textContent='相手の準備を待っています…';
+  const myKey=M.role==='host'?'hostReady':'guestReady';
+  await fb().update(roomRef(M.roomId),{[myKey]:true});
+}
+
+function startCountdown(roomData){
+  document.getElementById('ready-btn').style.display='none';
+  document.getElementById('ready-countdown').style.display='block';
+  const nums=['3','2','1','Go!'];let i=0;
+  const el=document.getElementById('countdown-num');el.textContent=nums[0];
+  const iv=setInterval(()=>{
+    i++;
+    if(i<nums.length){el.textContent=nums[i];el.style.animation='none';void el.offsetWidth;el.style.animation='countPop 0.8s ease';}
+    else{clearInterval(iv);M.countingDown=false;startMultiGame(roomData);}
+  },900);
+}
+
+function startMultiGame(roomData){
+  if(M.waitUnsub){M.waitUnsub();M.waitUnsub=null;}
+  _queue=[];M.myHP=MAX_HP;M.oppHP=MAX_HP;M.myCombo=0;M.myMaxCombo=0;M.myCorrect=0;M.myAnswered=0;
+  M.skipsLeft=MULTI_SKIP[M.diff];M.outPend=0;M.outFireTime=0;M.inPend=0;M.inFireTime=0;M.incomingPendFireTime=0;
+  M.ended=false;M.qAnswered=false;M.gameStart=roomData.gameStart||Date.now();
+  const oppName=M.oppName||(M.role==='host'?(roomData.guest||'相手'):roomData.host);M.oppName=oppName;
+  document.getElementById('mg-my-name').textContent=M.myName;
+  document.getElementById('mg-opp-name').textContent=oppName;
+  updateMultiHPUI();updateMultiSkipUI();showS('multi-game');multiLoadQ();
+  if(M.timeLimit>0){M.gameIv=setInterval(()=>tickMultiTimer(),200);}
+  else{document.getElementById('mg-timer').textContent='∞';}
+  M.gameUnsub=fb().onValue(roomRef(M.roomId),snap=>{
+    if(M.ended)return;const d=snap.val();if(!d)return;
+    const oppHPKey=M.role==='host'?'guestHP':'hostHP';
+    if(d[oppHPKey]!==undefined)M.oppHP=d[oppHPKey];
+    const pendKey=M.role==='host'?'pendingToHost':'pendingToGuest';
+    const pendTimeKey=M.role==='host'?'pendTimeHost':'pendTimeGuest';
+    if(d[pendKey]&&d[pendTimeKey]&&d[pendTimeKey]!==M.incomingPendFireTime){M.incomingPendFireTime=d[pendTimeKey];M.inPend=d[pendKey];scheduleSettlement();}
+    else if(d[pendKey]&&d[pendTimeKey]===M.incomingPendFireTime){M.inPend=d[pendKey];}
+    updateMultiHPUI();updatePendingUI();
+    if(M.oppHP<=0&&!M.ended){M.ended=true;endMultiGame('win');}
+    if(M.myHP<=0&&!M.ended){M.ended=true;endMultiGame('lose');}
+    if(d.state==='ended'&&!M.ended){M.ended=true;endMultiGame(M.myHP>M.oppHP?'win':M.myHP<M.oppHP?'lose':'draw');}
+  });
+}
+
+function tickMultiTimer(){const elapsed=(Date.now()-M.gameStart)/1000;const left=Math.max(0,M.timeLimit-elapsed);const el=document.getElementById('mg-timer');el.textContent=Math.ceil(left);el.className='stat-value';if(left<=10)el.classList.add('timer-danger');else if(left<=20)el.classList.add('timer-warn');const pct=left/M.timeLimit*100;const bar=document.getElementById('mg-prog');bar.style.width=pct+'%';bar.className='progress-fill'+(left<=10?' prog-danger':left<=20?' prog-warn':'');if(left<=0){clearInterval(M.gameIv);timeUpMulti();}}
+function timeUpMulti(){if(M.ended)return;M.ended=true;endMultiGame(M.myHP>M.oppHP?'win':M.myHP<M.oppHP?'lose':'draw','時間切れ');}
+function multiLoadQ(){M.qAnswered=false;const q=nextQ(M.diff);M.currentQ=q;document.getElementById('mg-name').textContent=q.name;document.getElementById('mg-bonus').textContent='';const box=document.getElementById('mg-choices');box.innerHTML='';makeChoices(q,M.diff).forEach(ch=>{const b=document.createElement('button');b.className='choice-btn';b.innerHTML=toSubHTML(ch);b.dataset.ans=ch;b.onclick=()=>multiPick(b,ch,q);box.appendChild(b);});}
+function multiPick(btn,chosen,q){if(M.qAnswered||M.ended)return;M.qAnswered=true;M.myAnswered++;const ok=chosen===q.ans;document.querySelectorAll('#mg-choices .choice-btn').forEach(b=>{b.disabled=true;if(b.dataset.ans===q.ans)b.classList.add(ok?'correct':'reveal');});if(ok){btn.classList.add('correct');M.myCorrect++;M.myCombo++;if(M.myCombo>M.myMaxCombo)M.myMaxCombo=M.myCombo;const dmg=M.myCombo>=11?5:M.myCombo>=5?3:M.myCombo>=3?2:0;if(dmg>0)addOutgoingDamage(dmg);}else{btn.classList.add('wrong');M.myCombo=0;addSelfDamage(3);}document.getElementById('mg-cor').textContent=M.myCorrect;document.getElementById('mg-combo').textContent=M.myCombo;setTimeout(()=>multiLoadQ(),700);}
+function multiSkip(){if(M.qAnswered||M.ended)return;if(MULTI_SKIP[M.diff]!==Infinity&&M.skipsLeft<=0)return;if(MULTI_SKIP[M.diff]!==Infinity)M.skipsLeft--;M.qAnswered=true;updateMultiSkipUI();document.querySelectorAll('#mg-choices .choice-btn').forEach(b=>b.disabled=true);document.getElementById('mg-bonus').textContent='スキップ';setTimeout(()=>multiLoadQ(),400);}
+async function multiSurrender(){if(M.ended)return;M.ended=true;clearInterval(M.gameIv);if(M.gameUnsub)M.gameUnsub();clearTimeout(M.settleTimeout);await fb().update(roomRef(M.roomId),{state:'ended'});endMultiGame('lose','降参');}
+function addOutgoingDamage(dmg){if(!M.outFireTime)M.outFireTime=Date.now();M.outPend+=dmg;scheduleSettlement();updatePendingUI();pushPendingToFirebase();}
+function addSelfDamage(dmg){if(!M.inFireTime)M.inFireTime=Date.now();M.inPend+=dmg;scheduleSettlement();updatePendingUI();}
+function scheduleSettlement(){clearTimeout(M.settleTimeout);M.settleTimeout=setTimeout(()=>settleAll(),5000);}
+function settleAll(){const out=M.outPend||0;const inc=M.inPend||0;const net=inc-out;if(net>0){M.myHP=Math.max(0,M.myHP-Math.round(net));showPop('-'+Math.round(net)+' HP');}else if(net<0){M.oppHP=Math.max(0,M.oppHP-Math.round(-net));showPop('⚔ -'+Math.round(-net)+' 相手HP');}else if(out>0||inc>0){showPop('⚡ 相殺！');}M.outPend=0;M.outFireTime=0;M.inPend=0;M.inFireTime=0;M.incomingPendFireTime=0;updateMultiHPUI();updatePendingUI();pushHPToFirebase();if(!M.ended){if(M.myHP<=0){M.ended=true;endMultiGame('lose');}if(M.oppHP<=0){M.ended=true;endMultiGame('win');}}}
+async function pushPendingToFirebase(){const pKey=M.role==='host'?'pendingToGuest':'pendingToHost';const ptKey=M.role==='host'?'pendTimeGuest':'pendTimeHost';await fb().update(roomRef(M.roomId),{[pKey]:M.outPend,[ptKey]:M.outFireTime||Date.now()});}
+async function pushHPToFirebase(){const mKey=M.role==='host'?'hostHP':'guestHP';const oKey=M.role==='host'?'guestHP':'hostHP';await fb().update(roomRef(M.roomId),{[mKey]:M.myHP,[oKey]:M.oppHP});}
+function updateMultiHPUI(){document.getElementById('mg-my-hp').textContent=Math.max(0,M.myHP);document.getElementById('mg-opp-hp').textContent=Math.max(0,M.oppHP);document.getElementById('mg-my-hp-bar').style.width=Math.max(0,M.myHP)/MAX_HP*100+'%';document.getElementById('mg-opp-hp-bar').style.width=Math.max(0,M.oppHP)/MAX_HP*100+'%';}
+function updatePendingUI(){const el=document.getElementById('mg-dmg-pending');const out=M.outPend||0;const inc=M.inPend||0;const net=inc-out;if(out===0&&inc===0){el.textContent='－';el.className='dmg-pending neutral';return;}if(net<0){el.textContent=`⚔ 相手に ${-net} ダメージ蓄積中…`;el.className='dmg-pending to-opp';}else if(net>0){el.textContent=`💥 自分に ${net} ダメージ蓄積中…`;el.className='dmg-pending to-me';}else{el.textContent='⚡ ダメージ相殺！';el.className='dmg-pending cancel';}}
+function updateMultiSkipUI(){const btn=document.getElementById('mg-skip-btn');const sl=M.skipsLeft;if(MULTI_SKIP[M.diff]===0){btn.style.display='none';return;}btn.style.display='';if(sl===Infinity){btn.textContent='スキップ';btn.disabled=false;}else if(sl>0){btn.textContent=`スキップ（残${sl}）`;btn.disabled=false;}else{btn.textContent='スキップ不可';btn.disabled=true;}}
+function endMultiGame(result,reason=''){clearInterval(M.gameIv);if(M.gameUnsub)M.gameUnsub();clearTimeout(M.settleTimeout);const rate=M.myAnswered>0?Math.round(M.myCorrect/M.myAnswered*100):0;let medal,title;if(result==='win'){medal='🏆';title='勝利！';}else if(result==='lose'){medal='💀';title='敗北…';}else{medal='🤝';title='引き分け！';}document.getElementById('mr-medal').textContent=medal;document.getElementById('mr-title').textContent=title;document.getElementById('mr-sub').textContent=reason;document.getElementById('mr-cor').textContent=M.myCorrect+'問';document.getElementById('mr-rate').textContent=rate+'%';document.getElementById('mr-mc').textContent=M.myMaxCombo;showS('multi-result');}
+</script>
 </body>
 </html>
