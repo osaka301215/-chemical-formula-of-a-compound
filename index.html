@@ -24,7 +24,7 @@
           <span class="mode-name">1人モード</span>
           <span class="mode-desc">タイムアタック<br>スコアを競おう</span>
         </button>
-        <button class="mode-card mode-card--battle" onclick="goMode('multi')">
+        <button class="mode-card mode-card--battle" onclick="showS('multi-top')">
           <span class="mode-icon">⚔️</span>
           <span class="mode-name">2人対戦</span>
           <span class="mode-desc">別デバイスで対戦<br>HPを削り合え</span>
@@ -109,11 +109,31 @@
       </div>
     </div>
 
-    <!-- ===== MULTI SETUP ===== -->
-    <div id="screen-multi-setup" class="screen">
+    <!-- ===== MULTI TOP ===== -->
+    <div id="screen-multi-top" class="screen">
       <div class="page-header">
         <button class="back-btn" onclick="showS('mode')">← 戻る</button>
         <h2>2人対戦</h2>
+      </div>
+      <div class="mode-grid">
+        <button class="mode-card" onclick="showS('multi-setup')">
+          <span class="mode-icon">🏠</span>
+          <span class="mode-name">ルームを作る</span>
+          <span class="mode-desc">難易度・時間を設定して<br>ルームIDを発行</span>
+        </button>
+        <button class="mode-card mode-card--battle" onclick="showS('multi-join')">
+          <span class="mode-icon">🚪</span>
+          <span class="mode-name">ルームに参加</span>
+          <span class="mode-desc">ルームIDを入力して<br>対戦に参加</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- ===== MULTI SETUP（ルーム作成専用） ===== -->
+    <div id="screen-multi-setup" class="screen">
+      <div class="page-header">
+        <button class="back-btn" onclick="showS('multi-top')">← 戻る</button>
+        <h2>ルームを作る</h2>
       </div>
       <div class="card">
         <div class="card-label">あなたの名前</div>
@@ -137,16 +157,13 @@
           <button class="time-btn" data-t="0">無制限</button>
         </div>
       </div>
-      <div class="btn-row">
-        <button class="btn btn--primary" onclick="createRoom()">ルームを作る</button>
-        <button class="btn" onclick="showS('multi-join')">ルームに参加</button>
-      </div>
+      <button class="btn btn--primary btn--full" onclick="createRoom()">ルームを作る</button>
     </div>
 
     <!-- ===== MULTI JOIN ===== -->
     <div id="screen-multi-join" class="screen">
       <div class="page-header">
-        <button class="back-btn" onclick="showS('multi-setup')">← 戻る</button>
+        <button class="back-btn" onclick="showS('multi-top')">← 戻る</button>
         <h2>ルームに参加</h2>
       </div>
       <div class="card">
@@ -221,7 +238,7 @@
         <div class="stat"><div class="stat-label">最高コンボ</div><div class="stat-value" id="mr-mc"></div></div>
       </div>
       <div class="btn-row">
-        <button class="btn btn--primary" onclick="showS('multi-setup')">もう一度</button>
+        <button class="btn btn--primary" onclick="showS('multi-top')">もう一度</button>
         <button class="btn" onclick="showS('mode')">トップへ</button>
       </div>
     </div>
