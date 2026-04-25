@@ -839,7 +839,7 @@ function startMultiGame(roomData){
   if(M.waitUnsub){M.waitUnsub();M.waitUnsub=null;}
   const hp=roomData.initHP||M.initHP||20;
   _queue=[];M.myHP=hp;M.oppHP=hp;M.myCombo=0;M.myMaxCombo=0;M.myCorrect=0;M.myAnswered=0;M.myMiss=0;
-  M.skipsLeft=MULTI_SKIP[M.diff];M.dmgTimer=null;
+  M.skipsLeft=MULTI_SKIP[M.diff];M.dmgTimer=null;M.cdIv=null;M.localDmgStart=0;M.latestNet=0;
   M.ended=false;M.qAnswered=false;M.gameStart=roomData.gameStart||Date.now();
   const oppName=M.oppName||(M.role==='host'?(roomData.guest||'相手'):roomData.host);M.oppName=oppName;
   document.getElementById('mg-my-name').textContent=M.myName;
@@ -868,21 +868,41 @@ function startMultiGame(roomData){
     }
     if(d[oppHPKey]!==undefined&&d[oppHPKey]!==M.oppHP){
       M.oppHP=d[oppHPKey];updateMultiHPUI();
-      // 相手が被弾はボールエフェクト側で処理済みのためフラッシュなし
+      flashField('opp'); // 相手被弾フラッシュ
       if(!M.ended&&M.oppHP<=0){M.ended=true;endMultiGame('win');}
     }
-    // dmgFieldをUIに反映（カウントダウン計算）
-    const net=d.dmgField||0;
-    let cd=null;
-    if(net!==0&&d.dmgStart){
-      const elapsed=(Date.now()-d.dmgStart)/1000;
-      cd=Math.max(0,Math.ceil(5-elapsed));
+    // dmgStartが来たらローカルカウントダウンを開始
+    if(d.dmgStart&&d.dmgStart!==M.localDmgStart){
+      M.localDmgStart=d.dmgStart;
+      startLocalCountdown(d.dmgStart);
     }
-    updateDmgUI(net,cd);
+    // dmgFieldをUIに反映（カウントはローカルで管理）
+    const net=d.dmgField||0;
+    M.latestNet=net;
+    if(net!==0||M.localDmgStart){
+      // net=0でもカウントが残っている場合は爆弾なし+カウント表示
+      const cd=M.localDmgStart?Math.max(0,Math.ceil(5-(Date.now()-M.localDmgStart)/1000)):null;
+      updateDmgUI(net,cd);
+    } else {
+      updateDmgUI(0,null);
+    }
     if(d.state==='ended'&&!M.ended){
       M.ended=true;endMultiGame(M.myHP>M.oppHP?'win':M.myHP<M.oppHP?'lose':'draw');
     }
   });
+}
+
+// ローカルでカウントダウンをsetIntervalで毎秒更新
+function startLocalCountdown(startTime){
+  clearInterval(M.cdIv);
+  M.localDmgStart=startTime;
+  M.cdIv=setInterval(()=>{
+    const elapsed=(Date.now()-startTime)/1000;
+    const cd=Math.max(0,Math.ceil(5-elapsed));
+    const net=M.latestNet||0;
+    updateDmgUI(net,cd);
+    if(elapsed>=5){ clearInterval(M.cdIv); M.cdIv=null; }
+  },200);
 }
 
 function tickMultiTimer(){const elapsed=(Date.now()-M.gameStart)/1000;const left=Math.max(0,M.timeLimit-elapsed);const el=document.getElementById('mg-timer');el.textContent=Math.ceil(left);el.className='stat-value';if(left<=10)el.classList.add('timer-danger');else if(left<=20)el.classList.add('timer-warn');const pct=left/M.timeLimit*100;const bar=document.getElementById('mg-prog');bar.style.width=pct+'%';bar.className='progress-fill'+(left<=10?' prog-danger':left<=20?' prog-warn':'');if(left<=0){clearInterval(M.gameIv);timeUpMulti();}}
@@ -961,6 +981,7 @@ async function flushDmg(){
   const net=snap.val();
   await fb().set(fb().ref(fb().db,'rooms/'+M.roomId+'/dmgField'),0);
   await fb().set(fb().ref(fb().db,'rooms/'+M.roomId+'/dmgStart'),0);
+  clearInterval(M.cdIv);M.cdIv=null;M.localDmgStart=0;M.latestNet=0;
   if(net===0){updateDmgUI(0,null);return;}
 
   // 爆弾その場爆発エフェクト（被弾側の爆弾エリアで爆発）
@@ -979,7 +1000,7 @@ async function flushDmg(){
 
   // 少し待ってからHP反映
   setTimeout(async()=>{
-    updateDmgUI(0);
+    updateDmgUI(0,null);
     if(net<0){
       // 親有利 → 子がダメージ
       if(M.role==='host'){
@@ -1086,7 +1107,7 @@ function updateMultiHPUI(){
   document.getElementById('mg-opp-hp-bar').style.width=oppHP/initHP*100+'%';
 }
 function updateMultiSkipUI(){const btn=document.getElementById('mg-skip-btn');const sl=M.skipsLeft;if(MULTI_SKIP[M.diff]===0){btn.style.display='none';return;}btn.style.display='';if(sl===Infinity){btn.textContent='スキップ';btn.disabled=false;}else if(sl>0){btn.textContent=`スキップ（残${sl}）`;btn.disabled=false;}else{btn.textContent='スキップ不可';btn.disabled=true;}}
-function endMultiGame(result,reason=''){clearInterval(M.gameIv);if(M.gameUnsub)M.gameUnsub();clearTimeout(M.dmgTimer);M.dmgTimer=null;const rate=M.myAnswered>0?Math.round(M.myCorrect/M.myAnswered*100):0;let medal,title;if(result==='win'){medal='🏆';title='勝利！';}else if(result==='lose'){medal='💀';title='敗北…';}else{medal='🤝';title='引き分け！';}document.getElementById('mr-medal').textContent=medal;document.getElementById('mr-title').textContent=title;document.getElementById('mr-sub').textContent=reason;document.getElementById('mr-cor').textContent=M.myCorrect+'問';document.getElementById('mr-miss').textContent=(M.myMiss||0)+'回';document.getElementById('mr-rate').textContent=rate+'%';document.getElementById('mr-mc').textContent=M.myMaxCombo;showS('multi-result');}
+function endMultiGame(result,reason=''){clearInterval(M.gameIv);clearInterval(M.cdIv);M.cdIv=null;if(M.gameUnsub)M.gameUnsub();clearTimeout(M.dmgTimer);M.dmgTimer=null;const rate=M.myAnswered>0?Math.round(M.myCorrect/M.myAnswered*100):0;let medal,title;if(result==='win'){medal='🏆';title='勝利！';}else if(result==='lose'){medal='💀';title='敗北…';}else{medal='🤝';title='引き分け！';}document.getElementById('mr-medal').textContent=medal;document.getElementById('mr-title').textContent=title;document.getElementById('mr-sub').textContent=reason;document.getElementById('mr-cor').textContent=M.myCorrect+'問';document.getElementById('mr-miss').textContent=(M.myMiss||0)+'回';document.getElementById('mr-rate').textContent=rate+'%';document.getElementById('mr-mc').textContent=M.myMaxCombo;showS('multi-result');}
 
 async function rematch(){
   clearTimeout(M.dmgTimer);M.dmgTimer=null;
