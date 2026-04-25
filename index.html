@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>化学式マスター</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div id="app">
+
+    <!-- ===== MODE SELECT ===== -->
+    <div id="screen-mode" class="screen active">
+      <div class="title-block">
+        <div class="title-label">CHEMISTRY QUIZ</div>
+        <h1 class="title-main">化学式マスター</h1>
+        <p class="title-sub">日本語名から化学式を4択で選ぼう</p>
+      </div>
+      <div class="mode-grid">
+        <button class="mode-card" onclick="goMode('solo')">
+          <span class="mode-icon">🧪</span>
+          <span class="mode-name">1人モード</span>
+          <span class="mode-desc">タイムアタック<br>スコアを競おう</span>
+        </button>
+        <button class="mode-card mode-card--battle" onclick="goMode('multi')">
+          <span class="mode-icon">⚔️</span>
+          <span class="mode-name">2人対戦</span>
+          <span class="mode-desc">別デバイスで対戦<br>HPを削り合え</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- ===== SOLO HOME ===== -->
+    <div id="screen-solo-home" class="screen">
+      <div class="page-header">
+        <button class="back-btn" onclick="showS('mode')">← 戻る</button>
+        <h2>1人モード</h2>
+      </div>
+      <div class="card">
+        <div class="card-label">難易度</div>
+        <div class="diff-grid">
+          <button class="diff-btn" data-d="easy">
+            <span class="diff-name">かんたん</span>
+            <span class="diff-desc">1価イオン中心 / スキップ無制限</span>
+          </button>
+          <button class="diff-btn sel" data-d="normal">
+            <span class="diff-name">ふつう</span>
+            <span class="diff-desc">多価イオン含む / スキップ3回</span>
+          </button>
+          <button class="diff-btn" data-d="hard">
+            <span class="diff-name">むずかしい</span>
+            <span class="diff-desc">全範囲・時間ボーナス / スキップ1回</span>
+          </button>
+          <button class="diff-btn diff-btn--oni" data-d="oni">
+            <span class="diff-name">鬼</span>
+            <span class="diff-desc">全範囲・時間ボーナス / スキップなし</span>
+          </button>
+        </div>
+        <div class="hint-box">むずかしい・鬼は5問連続正答から時間ボーナス（残り30s以上+2.0s / 15〜30s +1.5s / 15s未満 +1.0s）</div>
+      </div>
+      <div class="card">
+        <div class="card-label">プレイヤー名</div>
+        <input id="solo-name" type="text" maxlength="10" placeholder="名前（最大10文字）" class="text-input" />
+      </div>
+      <button class="btn btn--primary btn--full" onclick="startSolo()">スタート</button>
+    </div>
+
+    <!-- ===== SOLO GAME ===== -->
+    <div id="screen-solo-game" class="screen">
+      <div class="stats-row">
+        <div class="stat"><div class="stat-label">スコア</div><div class="stat-value" id="sg-score">0</div></div>
+        <div class="stat"><div class="stat-label">正解</div><div class="stat-value" id="sg-cor">0</div></div>
+        <div class="stat"><div class="stat-label">コンボ</div><div class="stat-value" id="sg-combo">0</div></div>
+        <div class="stat"><div class="stat-label">スキップ</div><div class="stat-value" id="sg-skip">-</div></div>
+        <div class="stat stat--timer"><div class="stat-label">残り</div><div class="stat-value" id="sg-timer">40</div></div>
+      </div>
+      <div class="progress-bar"><div class="progress-fill" id="sg-prog"></div></div>
+      <div class="question-card">
+        <div class="question-label">次の化合物の化学式はどれ？</div>
+        <div class="question-text" id="sg-name"></div>
+        <div class="bonus-msg" id="sg-bonus"></div>
+      </div>
+      <div class="choices-grid" id="sg-choices"></div>
+      <div class="action-row">
+        <button class="btn btn--skip" id="sg-skip-btn" onclick="soloSkip()">スキップ</button>
+        <button class="btn btn--end" onclick="soloEnd()">終了</button>
+      </div>
+    </div>
+
+    <!-- ===== SOLO RESULT ===== -->
+    <div id="screen-solo-result" class="screen">
+      <div class="result-hero">
+        <div class="result-medal" id="sr-medal"></div>
+        <div class="result-title" id="sr-title"></div>
+        <div class="result-sub" id="sr-sub"></div>
+      </div>
+      <div class="result-stats">
+        <div class="stat"><div class="stat-label">スコア</div><div class="stat-value stat-value--accent" id="sr-score"></div></div>
+        <div class="stat"><div class="stat-label">正解数</div><div class="stat-value" id="sr-cor"></div></div>
+        <div class="stat"><div class="stat-label">正答率</div><div class="stat-value" id="sr-rate"></div></div>
+        <div class="stat"><div class="stat-label">最高コンボ</div><div class="stat-value" id="sr-mc"></div></div>
+      </div>
+      <div id="sr-wrongs"></div>
+      <div class="btn-row">
+        <button class="btn btn--primary" onclick="startSolo()">もう一度</button>
+        <button class="btn" onclick="showS('solo-home')">メニュー</button>
+      </div>
+    </div>
+
+    <!-- ===== MULTI SETUP ===== -->
+    <div id="screen-multi-setup" class="screen">
+      <div class="page-header">
+        <button class="back-btn" onclick="showS('mode')">← 戻る</button>
+        <h2>2人対戦</h2>
+      </div>
+      <div class="card">
+        <div class="card-label">あなたの名前</div>
+        <input id="multi-name" type="text" maxlength="10" placeholder="名前（最大10文字）" class="text-input" />
+      </div>
+      <div class="card">
+        <div class="card-label">難易度</div>
+        <div class="diff-grid">
+          <button class="diff-btn" data-md="easy"><span class="diff-name">かんたん</span></button>
+          <button class="diff-btn sel" data-md="normal"><span class="diff-name">ふつう</span></button>
+          <button class="diff-btn" data-md="hard"><span class="diff-name">むずかしい</span></button>
+          <button class="diff-btn diff-btn--oni" data-md="oni"><span class="diff-name">鬼</span></button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-label">制限時間</div>
+        <div class="time-grid">
+          <button class="time-btn" data-t="60">1分</button>
+          <button class="time-btn sel" data-t="90">1分30秒</button>
+          <button class="time-btn" data-t="120">2分</button>
+          <button class="time-btn" data-t="0">無制限</button>
+        </div>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn--primary" onclick="createRoom()">ルームを作る</button>
+        <button class="btn" onclick="showS('multi-join')">ルームに参加</button>
+      </div>
+    </div>
+
+    <!-- ===== MULTI JOIN ===== -->
+    <div id="screen-multi-join" class="screen">
+      <div class="page-header">
+        <button class="back-btn" onclick="showS('multi-setup')">← 戻る</button>
+        <h2>ルームに参加</h2>
+      </div>
+      <div class="card">
+        <div class="card-label">あなたの名前</div>
+        <input id="join-name" type="text" maxlength="10" placeholder="名前（最大10文字）" class="text-input" />
+      </div>
+      <div class="card">
+        <div class="card-label">ルームID（6桁）</div>
+        <input id="join-room-id" type="text" maxlength="6" placeholder="例: ABC123" class="text-input text-input--mono text-input--large" oninput="this.value=this.value.toUpperCase()" />
+      </div>
+      <button class="btn btn--primary btn--full" onclick="joinRoom()">参加する</button>
+      <div id="join-error" class="error-msg"></div>
+    </div>
+
+    <!-- ===== MULTI WAIT ===== -->
+    <div id="screen-multi-wait" class="screen">
+      <div class="wait-block">
+        <div class="wait-title">対戦相手を待っています</div>
+        <div class="wait-sub">このルームIDを相手に伝えてください</div>
+        <div class="room-id-display" id="wait-room-id">------</div>
+        <div class="wait-status" id="wait-status">
+          <span class="dot dot--wait"></span>相手の参加を待っています…
+        </div>
+      </div>
+      <button class="btn btn--full" onclick="cancelRoom()">キャンセル</button>
+    </div>
+
+    <!-- ===== MULTI GAME ===== -->
+    <div id="screen-multi-game" class="screen">
+      <div class="hp-section">
+        <div class="hp-row hp-row--me">
+          <div class="hp-label" id="mg-my-name">あなた</div>
+          <div class="hp-bar-bg"><div class="hp-bar-fill hp-fill--me" id="mg-my-hp-bar"></div></div>
+          <div class="hp-num" id="mg-my-hp">20</div>
+        </div>
+        <div class="hp-row hp-row--opp">
+          <div class="hp-label" id="mg-opp-name">相手</div>
+          <div class="hp-bar-bg"><div class="hp-bar-fill hp-fill--opp" id="mg-opp-hp-bar"></div></div>
+          <div class="hp-num" id="mg-opp-hp">20</div>
+        </div>
+      </div>
+      <div class="dmg-pending" id="mg-dmg-pending">－</div>
+      <div class="stats-row stats-row--4">
+        <div class="stat stat--timer"><div class="stat-label">残り時間</div><div class="stat-value" id="mg-timer">-</div></div>
+        <div class="stat"><div class="stat-label">正解数</div><div class="stat-value" id="mg-cor">0</div></div>
+        <div class="stat"><div class="stat-label">コンボ</div><div class="stat-value" id="mg-combo">0</div></div>
+        <div class="stat"><div class="stat-label">スキップ</div><div class="stat-value" id="mg-skip">-</div></div>
+      </div>
+      <div class="progress-bar"><div class="progress-fill" id="mg-prog"></div></div>
+      <div class="question-card">
+        <div class="question-label">化学式はどれ？</div>
+        <div class="question-text" id="mg-name"></div>
+        <div class="bonus-msg" id="mg-bonus"></div>
+      </div>
+      <div class="choices-grid" id="mg-choices"></div>
+      <div class="action-row">
+        <button class="btn btn--skip" id="mg-skip-btn" onclick="multiSkip()">スキップ</button>
+        <button class="btn btn--end" onclick="multiSurrender()">降参</button>
+      </div>
+    </div>
+
+    <!-- ===== MULTI RESULT ===== -->
+    <div id="screen-multi-result" class="screen">
+      <div class="result-hero">
+        <div class="result-medal" id="mr-medal"></div>
+        <div class="result-title" id="mr-title"></div>
+        <div class="result-sub" id="mr-sub"></div>
+      </div>
+      <div class="result-stats">
+        <div class="stat"><div class="stat-label">正解数</div><div class="stat-value" id="mr-cor"></div></div>
+        <div class="stat"><div class="stat-label">正答率</div><div class="stat-value" id="mr-rate"></div></div>
+        <div class="stat"><div class="stat-label">最高コンボ</div><div class="stat-value" id="mr-mc"></div></div>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn--primary" onclick="showS('multi-setup')">もう一度</button>
+        <button class="btn" onclick="showS('mode')">トップへ</button>
+      </div>
+    </div>
+
+  </div><!-- #app -->
+
+  <!-- Firebase SDK -->
+  <script type="module" src="firebase-init.js"></script>
+  <script src="questions.js"></script>
+  <script src="game.js"></script>
+</body>
+</html>
