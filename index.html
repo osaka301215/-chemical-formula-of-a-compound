@@ -758,12 +758,20 @@ function startMultiGame(roomData){
     if(d[oppHPKey]!==undefined)M.oppHP=d[oppHPKey];
     const pendKey=M.role==='host'?'pendingToHost':'pendingToGuest';
     const pendTimeKey=M.role==='host'?'pendTimeHost':'pendTimeGuest';
-    if(d[pendKey]&&d[pendTimeKey]&&d[pendTimeKey]!==M.incomingPendFireTime){M.incomingPendFireTime=d[pendTimeKey];M.inPend=d[pendKey];scheduleSettlement();}
-    else if(d[pendKey]&&d[pendTimeKey]===M.incomingPendFireTime){M.inPend=d[pendKey];}
+    // pending>0かつ新しいバッチのときだけ処理（0クリア後の再発火を無視）
+    if(d[pendKey]>0&&d[pendTimeKey]&&d[pendTimeKey]!==M.incomingPendFireTime){
+      M.incomingPendFireTime=d[pendTimeKey];M.inPend=d[pendKey];scheduleSettlement();
+    } else if(d[pendKey]>0&&d[pendTimeKey]===M.incomingPendFireTime){
+      M.inPend=d[pendKey];
+    }
     updateMultiHPUI();updatePendingUI();
-    if(M.oppHP<=0&&!M.ended){M.ended=true;endMultiGame('win');}
-    if(M.myHP<=0&&!M.ended){M.ended=true;endMultiGame('lose');}
-    if(d.state==='ended'&&!M.ended){M.ended=true;endMultiGame(M.myHP>M.oppHP?'win':M.myHP<M.oppHP?'lose':'draw');}
+    // 終了判定は排他的に
+    if(!M.ended){
+      if(M.myHP<=0&&M.oppHP<=0){M.ended=true;endMultiGame('draw','相殺KO');}
+      else if(M.oppHP<=0){M.ended=true;endMultiGame('win');}
+      else if(M.myHP<=0){M.ended=true;endMultiGame('lose');}
+      else if(d.state==='ended'){M.ended=true;endMultiGame(M.myHP>M.oppHP?'win':M.myHP<M.oppHP?'lose':'draw');}
+    }
   });
 }
 
@@ -793,8 +801,24 @@ function scheduleSettlement(){
   M.settleTimeout=setTimeout(()=>settleAll(),5000);
 }
 function settleAll(){
-  M.settleTimeout=null; // タイマーをリセット
-  const out=M.outPend||0;const inc=M.inPend||0;const net=inc-out;if(net>0){M.myHP=Math.max(0,M.myHP-Math.round(net));showPop('-'+Math.round(net)+' HP');}else if(net<0){M.oppHP=Math.max(0,M.oppHP-Math.round(-net));showPop('⚔ -'+Math.round(-net)+' 相手HP');}else if(out>0||inc>0){showPop('⚡ 相殺！');}M.outPend=0;M.outFireTime=0;M.inPend=0;M.inFireTime=0;M.incomingPendFireTime=0;updateMultiHPUI();updatePendingUI();pushHPToFirebase();if(!M.ended){if(M.myHP<=0){M.ended=true;endMultiGame('lose');}if(M.oppHP<=0){M.ended=true;endMultiGame('win');}}}
+  M.settleTimeout=null;
+  const out=M.outPend||0;const inc=M.inPend||0;const net=inc-out;
+  if(net>0){M.myHP=Math.max(0,M.myHP-Math.round(net));showPop('-'+Math.round(net)+' HP');}
+  else if(net<0){M.oppHP=Math.max(0,M.oppHP-Math.round(-net));showPop('⚔ -'+Math.round(-net)+' 相手HP');}
+  else if(out>0||inc>0){showPop('⚡ 相殺！');}
+  M.outPend=0;M.outFireTime=0;M.inPend=0;M.inFireTime=0;M.incomingPendFireTime=0;
+  updateMultiHPUI();updatePendingUI();pushHPToFirebase();
+  // Firebase側のpendingも0にクリア（リスナーによる再発火を防止）
+  const pKey=M.role==='host'?'pendingToGuest':'pendingToHost';
+  const ptKey=M.role==='host'?'pendTimeGuest':'pendTimeHost';
+  fb().update(roomRef(M.roomId),{[pKey]:0,[ptKey]:0});
+  // 終了判定は排他的に（両方0でも引き分けにする）
+  if(!M.ended){
+    if(M.myHP<=0&&M.oppHP<=0){M.ended=true;endMultiGame('draw','相殺KO');}
+    else if(M.myHP<=0){M.ended=true;endMultiGame('lose');}
+    else if(M.oppHP<=0){M.ended=true;endMultiGame('win');}
+  }
+}
 async function pushPendingToFirebase(){const pKey=M.role==='host'?'pendingToGuest':'pendingToHost';const ptKey=M.role==='host'?'pendTimeGuest':'pendTimeHost';await fb().update(roomRef(M.roomId),{[pKey]:M.outPend,[ptKey]:M.outFireTime||Date.now()});}
 async function pushHPToFirebase(){const mKey=M.role==='host'?'hostHP':'guestHP';const oKey=M.role==='host'?'guestHP':'hostHP';await fb().update(roomRef(M.roomId),{[mKey]:M.myHP,[oKey]:M.oppHP});}
 function updateMultiHPUI(){document.getElementById('mg-my-hp').textContent=Math.max(0,M.myHP);document.getElementById('mg-opp-hp').textContent=Math.max(0,M.oppHP);document.getElementById('mg-my-hp-bar').style.width=Math.max(0,M.myHP)/MAX_HP*100+'%';document.getElementById('mg-opp-hp-bar').style.width=Math.max(0,M.oppHP)/MAX_HP*100+'%';}
