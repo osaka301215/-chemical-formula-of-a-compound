@@ -754,15 +754,22 @@ function startMultiGame(roomData){
   updateMultiHPUI();updateMultiSkipUI();showS('multi-game');multiLoadQ();
   if(M.timeLimit>0){M.gameIv=setInterval(()=>tickMultiTimer(),200);}
   else{document.getElementById('mg-timer').textContent='∞';}
-  // リスナー：相手HPの変化と終了状態だけ監視
+  // リスナー：自分HP・相手HP・終了状態を監視
   M.gameUnsub=fb().onValue(roomRef(M.roomId),snap=>{
     if(M.ended)return;const d=snap.val();if(!d)return;
     const myHPKey=M.role==='host'?'hostHP':'guestHP';
+    const oppHPKey=M.role==='host'?'guestHP':'hostHP';
     // 自分のHPが相手に削られた場合を反映
     if(d[myHPKey]!==undefined&&d[myHPKey]!==M.myHP){
       M.myHP=d[myHPKey];
       updateMultiHPUI();
       if(!M.ended&&M.myHP<=0){M.ended=true;endMultiGame('lose');}
+    }
+    // 相手のHPが変化した場合を反映（相手の自爆 or こちらの攻撃が反映済み）
+    if(d[oppHPKey]!==undefined&&d[oppHPKey]!==M.oppHP){
+      M.oppHP=d[oppHPKey];
+      updateMultiHPUI();
+      if(!M.ended&&M.oppHP<=0){M.ended=true;endMultiGame('win');}
     }
     if(d.state==='ended'&&!M.ended){
       M.ended=true;endMultiGame(M.myHP>M.oppHP?'win':M.myHP<M.oppHP?'lose':'draw');
