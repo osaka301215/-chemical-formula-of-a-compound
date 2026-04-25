@@ -296,6 +296,7 @@ async function createRoom() {
     pendingToHost: 0, pendingToGuest: 0,
     pendTimeHost: 0,  pendTimeGuest: 0,
     gameStart: 0,
+    hostReady: false, guestReady: false,
   };
   await fb().set(roomRef(roomId), data);
 
@@ -306,10 +307,10 @@ async function createRoom() {
   M.waitUnsub = fb().onValue(roomRef(roomId), snap => {
     const d = snap.val();
     if (!d) return;
-    if (d.state === 'ready') {
-      M.waitUnsub(); // リスナー解除
+    if (d.state === 'matched') {
+      M.waitUnsub();
       M.guestName = d.guest;
-      startMultiGame(d);
+      showReadyScreen(d);
     }
   });
 }
@@ -330,16 +331,83 @@ async function joinRoom() {
   M.diff = d.diff; M.timeLimit = d.timeLimit; M.hostName = d.host;
 
   await fb().update(roomRef(rid), {
-    guest: name, state: 'ready', gameStart: Date.now()
+    guest: name, state: 'matched',
   });
   const snap2 = await fb().get(roomRef(rid));
-  startMultiGame(snap2.val());
+  M.guestName = name;
+  showReadyScreen(snap2.val());
 }
 
 async function cancelRoom() {
   if (M.waitUnsub) M.waitUnsub();
   await fb().remove(roomRef(M.roomId));
-  showS('multi-setup');
+  showS('multi-top');
+}
+
+function showReadyScreen(roomData) {
+  if (M.waitUnsub) M.waitUnsub();
+  const oppName = M.role === 'host' ? (roomData.guest || '相手') : roomData.host;
+  M.oppName = oppName;
+  document.getElementById('ready-my-name').textContent  = M.myName;
+  document.getElementById('ready-opp-name').textContent = oppName;
+  document.getElementById('ready-my-status').textContent  = '⏳';
+  document.getElementById('ready-opp-status').textContent = '⏳';
+  document.getElementById('ready-msg').textContent = '準備ができたらReadyを押してください';
+  document.getElementById('ready-btn').style.display = '';
+  document.getElementById('ready-countdown').style.display = 'none';
+  document.getElementById('ready-btn').disabled = false;
+  showS('multi-ready');
+
+  // リスナーでお互いのReady状態を監視
+  M.readyUnsub = fb().onValue(roomRef(M.roomId), snap => {
+    const d = snap.val();
+    if (!d) return;
+    const myReadyKey  = M.role === 'host' ? 'hostReady' : 'guestReady';
+    const oppReadyKey = M.role === 'host' ? 'guestReady' : 'hostReady';
+    document.getElementById('ready-my-status').textContent  = d[myReadyKey]  ? '✅' : '⏳';
+    document.getElementById('ready-opp-status').textContent = d[oppReadyKey] ? '✅' : '⏳';
+    if (d.hostReady && d.guestReady && d.state === 'matched') {
+      if (M.role === 'host') {
+        // ホストだけgameStartを書き込む
+        fb().update(roomRef(M.roomId), { state: 'countdown', gameStart: Date.now() + 4000 });
+      }
+    }
+    if (d.state === 'countdown' && !M.countingDown) {
+      M.countingDown = true;
+      if (M.readyUnsub) M.readyUnsub();
+      startCountdown(d);
+    }
+  });
+}
+
+async function pressReady() {
+  document.getElementById('ready-btn').disabled = true;
+  document.getElementById('ready-msg').textContent = '相手の準備を待っています…';
+  const myReadyKey = M.role === 'host' ? 'hostReady' : 'guestReady';
+  await fb().update(roomRef(M.roomId), { [myReadyKey]: true });
+}
+
+function startCountdown(roomData) {
+  document.getElementById('ready-btn').style.display = 'none';
+  document.getElementById('ready-countdown').style.display = 'block';
+  document.getElementById('ready-msg').textContent = '';
+  const nums = ['3', '2', '1', 'Go!'];
+  let i = 0;
+  const el = document.getElementById('countdown-num');
+  el.textContent = nums[0];
+  const iv = setInterval(() => {
+    i++;
+    if (i < nums.length) {
+      el.textContent = nums[i];
+      el.style.animation = 'none';
+      void el.offsetWidth; // reflow
+      el.style.animation = 'countPop 0.8s ease';
+    } else {
+      clearInterval(iv);
+      M.countingDown = false;
+      startMultiGame(roomData);
+    }
+  }, 900);
 }
 
 function startMultiGame(roomData) {
@@ -353,8 +421,7 @@ function startMultiGame(roomData) {
   M.incomingPendFireTime = 0;
   M.ended = false; M.qAnswered = false;
   M.gameStart = roomData.gameStart || Date.now();
-
-  const oppName = M.role === 'host' ? (roomData.guest || '相手') : roomData.host;
+  const oppName = M.oppName || (M.role === 'host' ? (roomData.guest || '相手') : roomData.host);
   M.oppName = oppName;
   document.getElementById('mg-my-name').textContent  = M.myName;
   document.getElementById('mg-opp-name').textContent = oppName;
