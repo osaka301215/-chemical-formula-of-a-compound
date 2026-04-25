@@ -342,6 +342,15 @@ body:not(.bg-default) #app { background: transparent; }
         <button class="time-btn" data-t="0">無制限</button>
       </div>
     </div>
+    <div class="card">
+      <div class="card-label">初期HP</div>
+      <div class="time-grid">
+        <button class="time-btn hp-btn" data-hp="15">15</button>
+        <button class="time-btn hp-btn sel" data-hp="20">20</button>
+        <button class="time-btn hp-btn" data-hp="25">25</button>
+        <button class="time-btn hp-btn" data-hp="30">30</button>
+      </div>
+    </div>
     <button class="btn btn--primary btn--full" onclick="createRoom()">ルームを作る</button>
   </div>
 
@@ -432,8 +441,9 @@ body:not(.bg-default) #app { background: transparent; }
       <div class="result-title" id="mr-title"></div>
       <div class="result-sub" id="mr-sub"></div>
     </div>
-    <div class="result-stats">
+    <div class="result-stats" style="grid-template-columns:repeat(4,1fr);">
       <div class="stat"><div class="stat-label">正解数</div><div class="stat-value" id="mr-cor"></div></div>
+      <div class="stat"><div class="stat-label">ミス数</div><div class="stat-value" style="color:var(--red);" id="mr-miss"></div></div>
       <div class="stat"><div class="stat-label">正答率</div><div class="stat-value" id="mr-rate"></div></div>
       <div class="stat"><div class="stat-label">最高コンボ</div><div class="stat-value" id="mr-mc"></div></div>
     </div>
@@ -640,6 +650,8 @@ function makeChoices(q,diff){const ik=diff==='oni'?'hard':diff;const correct=q.a
 document.querySelectorAll('[data-d]').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('[data-d]').forEach(x=>x.classList.remove('sel'));b.classList.add('sel');S.pendingDiff=b.dataset.d;}));
 document.querySelectorAll('[data-md]').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('[data-md]').forEach(x=>x.classList.remove('sel'));b.classList.add('sel');M.pendingDiff=b.dataset.md;}));
 document.querySelectorAll('[data-t]').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('[data-t]').forEach(x=>x.classList.remove('sel'));b.classList.add('sel');M.pendingTime=parseInt(b.dataset.t);}));
+document.querySelectorAll('[data-hp]').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('[data-hp]').forEach(x=>x.classList.remove('sel'));b.classList.add('sel');M.pendingHP=parseInt(b.dataset.hp);}));
+M.pendingHP=20;
 
 const SOLO_CFG={easy:{skipMax:Infinity,timeBonus:false,pts:80},normal:{skipMax:3,timeBonus:false,pts:120},hard:{skipMax:1,timeBonus:true,pts:160},oni:{skipMax:0,timeBonus:true,pts:200}};
 const SOLO_TIME=40;
@@ -665,8 +677,8 @@ function genRoomId(){const c='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';return Array.fro
 async function createRoom(){
   const name=(document.getElementById('multi-name').value.trim()||'プレイヤー1').slice(0,10);
   const roomId=genRoomId();
-  M.roomId=roomId;M.role='host';M.myName=name;M.diff=M.pendingDiff;M.timeLimit=M.pendingTime;
-  await fb().set(roomRef(roomId),{host:name,diff:M.diff,timeLimit:M.timeLimit,state:'waiting',hostHP:MAX_HP,guestHP:MAX_HP,pendingToHost:0,pendingToGuest:0,pendTimeHost:0,pendTimeGuest:0,gameStart:0,hostReady:false,guestReady:false});
+  M.roomId=roomId;M.role='host';M.myName=name;M.diff=M.pendingDiff;M.timeLimit=M.pendingTime;M.initHP=M.pendingHP||20;
+  await fb().set(roomRef(roomId),{host:name,diff:M.diff,timeLimit:M.timeLimit,initHP:M.initHP,state:'waiting',hostHP:M.initHP,guestHP:M.initHP,dmgField:0,gameStart:0,hostReady:false,guestReady:false});
   document.getElementById('wait-room-id').textContent=roomId;
   showS('multi-wait');
   M.waitUnsub=fb().onValue(roomRef(roomId),snap=>{
@@ -684,7 +696,7 @@ async function joinRoom(){
   if(!snap.exists()){errEl.textContent='ルームが見つかりません';return;}
   const d=snap.val();
   if(d.state!=='waiting'){errEl.textContent='このルームはすでに開始しています';return;}
-  M.roomId=rid;M.role='guest';M.myName=name;M.diff=d.diff;M.timeLimit=d.timeLimit;
+  M.roomId=rid;M.role='guest';M.myName=name;M.diff=d.diff;M.timeLimit=d.timeLimit;M.initHP=d.initHP||20;
   await fb().update(roomRef(rid),{guest:name,state:'matched'});
   const snap2=await fb().get(roomRef(rid));
   M.guestName=name;showReadyScreen(snap2.val());
@@ -743,7 +755,8 @@ function startCountdown(roomData){
 
 function startMultiGame(roomData){
   if(M.waitUnsub){M.waitUnsub();M.waitUnsub=null;}
-  _queue=[];M.myHP=MAX_HP;M.oppHP=MAX_HP;M.myCombo=0;M.myMaxCombo=0;M.myCorrect=0;M.myAnswered=0;
+  const hp=roomData.initHP||M.initHP||20;
+  _queue=[];M.myHP=hp;M.oppHP=hp;M.myCombo=0;M.myMaxCombo=0;M.myCorrect=0;M.myAnswered=0;M.myMiss=0;
   M.skipsLeft=MULTI_SKIP[M.diff];M.dmgTimer=null;
   M.ended=false;M.qAnswered=false;M.gameStart=roomData.gameStart||Date.now();
   const oppName=M.oppName||(M.role==='host'?(roomData.guest||'相手'):roomData.host);M.oppName=oppName;
@@ -780,7 +793,7 @@ function startMultiGame(roomData){
 function tickMultiTimer(){const elapsed=(Date.now()-M.gameStart)/1000;const left=Math.max(0,M.timeLimit-elapsed);const el=document.getElementById('mg-timer');el.textContent=Math.ceil(left);el.className='stat-value';if(left<=10)el.classList.add('timer-danger');else if(left<=20)el.classList.add('timer-warn');const pct=left/M.timeLimit*100;const bar=document.getElementById('mg-prog');bar.style.width=pct+'%';bar.className='progress-fill'+(left<=10?' prog-danger':left<=20?' prog-warn':'');if(left<=0){clearInterval(M.gameIv);timeUpMulti();}}
 function timeUpMulti(){if(M.ended)return;M.ended=true;endMultiGame(M.myHP>M.oppHP?'win':M.myHP<M.oppHP?'lose':'draw','時間切れ');}
 function multiLoadQ(){M.qAnswered=false;const q=nextQ(M.diff);M.currentQ=q;document.getElementById('mg-name').textContent=q.name;document.getElementById('mg-bonus').textContent='';const box=document.getElementById('mg-choices');box.innerHTML='';makeChoices(q,M.diff).forEach(ch=>{const b=document.createElement('button');b.className='choice-btn';b.innerHTML=toSubHTML(ch);b.dataset.ans=ch;b.onclick=()=>multiPick(b,ch,q);box.appendChild(b);});}
-function multiPick(btn,chosen,q){if(M.qAnswered||M.ended)return;M.qAnswered=true;M.myAnswered++;const ok=chosen===q.ans;document.querySelectorAll('#mg-choices .choice-btn').forEach(b=>{b.disabled=true;if(b.dataset.ans===q.ans)b.classList.add(ok?'correct':'reveal');});if(ok){btn.classList.add('correct');M.myCorrect++;M.myCombo++;if(M.myCombo>M.myMaxCombo)M.myMaxCombo=M.myCombo;const dmg=M.myCombo>=11?5:M.myCombo>=5?3:M.myCombo>=3?2:0;if(dmg>0)addOutDmg(dmg);}else{btn.classList.add('wrong');M.myCombo=0;takeSelfDmg(3);}document.getElementById('mg-cor').textContent=M.myCorrect;document.getElementById('mg-combo').textContent=M.myCombo;setTimeout(()=>multiLoadQ(),700);}
+function multiPick(btn,chosen,q){if(M.qAnswered||M.ended)return;M.qAnswered=true;M.myAnswered++;const ok=chosen===q.ans;document.querySelectorAll('#mg-choices .choice-btn').forEach(b=>{b.disabled=true;if(b.dataset.ans===q.ans)b.classList.add(ok?'correct':'reveal');});if(ok){btn.classList.add('correct');M.myCorrect++;M.myCombo++;if(M.myCombo>M.myMaxCombo)M.myMaxCombo=M.myCombo;const dmg=M.myCombo>=11?5:M.myCombo>=5?3:M.myCombo>=3?2:0;if(dmg>0)addOutDmg(dmg);}else{btn.classList.add('wrong');M.myCombo=0;M.myMiss=(M.myMiss||0)+1;takeSelfDmg(3);}document.getElementById('mg-cor').textContent=M.myCorrect;document.getElementById('mg-combo').textContent=M.myCombo;setTimeout(()=>multiLoadQ(),700);}
 function multiSkip(){if(M.qAnswered||M.ended)return;if(MULTI_SKIP[M.diff]!==Infinity&&M.skipsLeft<=0)return;if(MULTI_SKIP[M.diff]!==Infinity)M.skipsLeft--;M.qAnswered=true;updateMultiSkipUI();document.querySelectorAll('#mg-choices .choice-btn').forEach(b=>b.disabled=true);document.getElementById('mg-bonus').textContent='スキップ';setTimeout(()=>multiLoadQ(),400);}
 async function multiSurrender(){if(M.ended)return;M.ended=true;clearInterval(M.gameIv);if(M.gameUnsub)M.gameUnsub();clearTimeout(M.dmgTimer);await fb().update(roomRef(M.roomId),{state:'ended'});endMultiGame('lose','降参');}
 
@@ -881,12 +894,13 @@ function updateDmgUI(net){
 }
 function updateMultiHPUI(){document.getElementById('mg-my-hp').textContent=Math.max(0,M.myHP);document.getElementById('mg-opp-hp').textContent=Math.max(0,M.oppHP);document.getElementById('mg-my-hp-bar').style.width=Math.max(0,M.myHP)/MAX_HP*100+'%';document.getElementById('mg-opp-hp-bar').style.width=Math.max(0,M.oppHP)/MAX_HP*100+'%';}
 function updateMultiSkipUI(){const btn=document.getElementById('mg-skip-btn');const sl=M.skipsLeft;if(MULTI_SKIP[M.diff]===0){btn.style.display='none';return;}btn.style.display='';if(sl===Infinity){btn.textContent='スキップ';btn.disabled=false;}else if(sl>0){btn.textContent=`スキップ（残${sl}）`;btn.disabled=false;}else{btn.textContent='スキップ不可';btn.disabled=true;}}
-function endMultiGame(result,reason=''){clearInterval(M.gameIv);if(M.gameUnsub)M.gameUnsub();clearTimeout(M.dmgTimer);M.dmgTimer=null;const rate=M.myAnswered>0?Math.round(M.myCorrect/M.myAnswered*100):0;let medal,title;if(result==='win'){medal='🏆';title='勝利！';}else if(result==='lose'){medal='💀';title='敗北…';}else{medal='🤝';title='引き分け！';}document.getElementById('mr-medal').textContent=medal;document.getElementById('mr-title').textContent=title;document.getElementById('mr-sub').textContent=reason;document.getElementById('mr-cor').textContent=M.myCorrect+'問';document.getElementById('mr-rate').textContent=rate+'%';document.getElementById('mr-mc').textContent=M.myMaxCombo;showS('multi-result');}
+function endMultiGame(result,reason=''){clearInterval(M.gameIv);if(M.gameUnsub)M.gameUnsub();clearTimeout(M.dmgTimer);M.dmgTimer=null;const rate=M.myAnswered>0?Math.round(M.myCorrect/M.myAnswered*100):0;let medal,title;if(result==='win'){medal='🏆';title='勝利！';}else if(result==='lose'){medal='💀';title='敗北…';}else{medal='🤝';title='引き分け！';}document.getElementById('mr-medal').textContent=medal;document.getElementById('mr-title').textContent=title;document.getElementById('mr-sub').textContent=reason;document.getElementById('mr-cor').textContent=M.myCorrect+'問';document.getElementById('mr-miss').textContent=(M.myMiss||0)+'回';document.getElementById('mr-rate').textContent=rate+'%';document.getElementById('mr-mc').textContent=M.myMaxCombo;showS('multi-result');}
 
 async function rematch(){
   clearTimeout(M.dmgTimer);M.dmgTimer=null;
+  const hp=M.initHP||20;
   await fb().update(roomRef(M.roomId),{
-    state:'matched', hostHP:MAX_HP, guestHP:MAX_HP,
+    state:'matched', hostHP:hp, guestHP:hp,
     dmgField:0, gameStart:0, hostReady:false, guestReady:false,
   });
   const snap=await fb().get(roomRef(M.roomId));
