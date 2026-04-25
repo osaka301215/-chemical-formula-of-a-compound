@@ -194,25 +194,25 @@ body:not(.bg-default) #app { background: transparent; }
 .field-hp-num { font-size: 20px; font-weight: 700; font-family: var(--mono); min-width: 32px; text-align: center; color: var(--text); }
 
 /* ── ダメージプール（中央） ── */
-.dmg-pool { margin: 8px 0; display: flex; justify-content: center; }
+.dmg-pool { margin: 6px 0; display: flex; justify-content: center; }
 .dmg-pool-inner {
-  display: flex; align-items: center; gap: 10px;
-  padding: 8px 20px; border-radius: 20px;
-  border: 1.5px solid; min-width: 200px; justify-content: center;
-  transition: background 0.3s, border-color 0.3s;
+  width: 100%; padding: 8px 16px;
+  border-radius: var(--radius); border: 1.5px solid;
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  transition: background 0.3s, border-color 0.3s; min-height: 80px;
 }
-.dmg-pool-inner.neutral {
-  background: rgba(255,200,50,0.08); border-color: rgba(255,200,50,0.3); color: #c8a832;
-}
-.dmg-pool-inner.blue {
-  background: rgba(108,99,255,0.15); border-color: rgba(108,99,255,0.5); color: #8b84ff;
-}
-.dmg-pool-inner.red {
-  background: rgba(255,77,77,0.15); border-color: rgba(255,77,77,0.5); color: #ff6b6b;
-}
-.dmg-pool-icon { font-size: 18px; }
-.dmg-pool-val  { font-size: 24px; font-weight: 700; font-family: var(--mono); }
-.dmg-pool-label { font-size: 11px; opacity: 0.8; }
+.dmg-pool-inner.neutral { background: rgba(255,200,50,0.06); border-color: rgba(255,200,50,0.25); }
+.dmg-pool-inner.blue    { background: rgba(108,99,255,0.12); border-color: rgba(108,99,255,0.45); }
+.dmg-pool-inner.red     { background: rgba(255,77,77,0.12);  border-color: rgba(255,77,77,0.45); }
+.dmg-pool-center { display: flex; align-items: center; gap: 8px; }
+.dmg-pool-icon { font-size: 20px; color: var(--text3); }
+.dmg-countdown { font-size: 22px; font-weight: 700; font-family: var(--mono); color: var(--amber); min-width: 24px; text-align: center; }
+.dmg-bombs-top, .dmg-bombs-bot { width: 100%; min-height: 26px; display: flex; flex-wrap: wrap; justify-content: center; gap: 3px; align-items: center; }
+.dmg-bomb { font-size: 20px; line-height: 1; transition: transform 0.15s; }
+.dmg-bomb:hover { transform: scale(1.2); }
+/* 爆発エフェクト */
+@keyframes bombExplode { 0%{transform:scale(1);opacity:1} 40%{transform:scale(2.2);opacity:0.9} 100%{transform:scale(3.5);opacity:0} }
+.bomb-exploding { animation: bombExplode 0.5s ease-out forwards; }
 .rank-row { display: flex; align-items: center; gap: 8px; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 14px; }
 .rank-row:last-child { border-bottom: none; }
 .rank-num { width: 28px; text-align: center; font-weight: 700; font-family: var(--mono); color: var(--text3); font-size: 13px; }
@@ -473,10 +473,16 @@ body:not(.bg-default) #app { background: transparent; }
 
     <!-- ダメージプール（中央） -->
     <div class="dmg-pool" id="mg-dmg-pool">
-      <div class="dmg-pool-inner neutral" id="mg-dmg-inner">
-        <div class="dmg-pool-icon" id="mg-dmg-icon">⚔</div>
-        <div class="dmg-pool-val" id="mg-dmg-val">0</div>
-        <div class="dmg-pool-label" id="mg-dmg-label">ダメージプール</div>
+      <div class="dmg-pool-inner" id="mg-dmg-inner">
+        <!-- 上エリア（相手側） -->
+        <div class="dmg-bombs-top" id="mg-bombs-top"></div>
+        <!-- 中央：カウントダウン or ⚔ -->
+        <div class="dmg-pool-center">
+          <div class="dmg-pool-icon" id="mg-dmg-icon">⚔</div>
+          <div class="dmg-countdown" id="mg-dmg-countdown"></div>
+        </div>
+        <!-- 下エリア（自分側） -->
+        <div class="dmg-bombs-bot" id="mg-bombs-bot"></div>
       </div>
     </div>
 
@@ -865,9 +871,14 @@ function startMultiGame(roomData){
       // 相手が被弾はボールエフェクト側で処理済みのためフラッシュなし
       if(!M.ended&&M.oppHP<=0){M.ended=true;endMultiGame('win');}
     }
-    // dmgField をUIに反映（タイマーはローカルで管理）
+    // dmgFieldをUIに反映（カウントダウン計算）
     const net=d.dmgField||0;
-    updateDmgUI(net);
+    let cd=null;
+    if(net!==0&&d.dmgStart){
+      const elapsed=(Date.now()-d.dmgStart)/1000;
+      cd=Math.max(0,Math.ceil(5-elapsed));
+    }
+    updateDmgUI(net,cd);
     if(d.state==='ended'&&!M.ended){
       M.ended=true;endMultiGame(M.myHP>M.oppHP?'win':M.myHP<M.oppHP?'lose':'draw');
     }
@@ -904,7 +915,12 @@ async function applyDmgField(delta){
   const snap=await fb().get(fb().ref(fb().db,'rooms/'+M.roomId+'/dmgField'));
   const cur=(snap.exists()&&snap.val()!==null)?snap.val():0;
   const next=cur+delta;
+  const isFirst=(cur===0&&next!==0);
   await fb().set(fb().ref(fb().db,'rooms/'+M.roomId+'/dmgField'),next);
+  if(isFirst){
+    // 初回発生時にカウントダウン開始時刻をFirebaseに書き込む
+    await fb().set(fb().ref(fb().db,'rooms/'+M.roomId+'/dmgStart'),Date.now());
+  }
   if(!M.dmgTimer)M.dmgTimer=setTimeout(()=>flushDmg(),5000);
 }
 
@@ -921,39 +937,21 @@ async function flushDmg(){
   if(!snap.exists()||snap.val()===null)return;
   const net=snap.val();
   await fb().set(fb().ref(fb().db,'rooms/'+M.roomId+'/dmgField'),0);
-  if(net===0){updateDmgUI(0);return;}
+  await fb().set(fb().ref(fb().db,'rooms/'+M.roomId+'/dmgStart'),0);
+  if(net===0){updateDmgUI(0,null);return;}
 
-  // ボール飛翔エフェクト（常に手前→奥 = 下から上、色はrole固定）
-  const ballColor = net<0 ? 'blue' : 'red'; // net<0=host有利=青、net>0=guest有利=赤
-  const pool = document.getElementById('mg-dmg-pool');
-  if(pool){
-    const rect = pool.getBoundingClientRect();
-    const cx = rect.left + rect.width/2;
-    const cy = rect.top + rect.height/2;
-    const ball = document.createElement('div');
-    ball.className = 'dmg-ball '+ballColor;
-    ball.textContent = net<0 ? '🔵' : '🔴';
-    ball.style.left = (cx-14)+'px';
-    ball.style.top  = (cy-14)+'px';
-    ball.style.animation = 'flyToTop 0.7s ease-in forwards'; // 常に上（奥=相手）へ
-    document.body.appendChild(ball);
-    setTimeout(()=>{
-      ball.remove();
-      // 着弾 → 相手HPバー（常に上=mg-opp-hp-bar）に爆発
-      const targetBar = document.getElementById('mg-opp-hp-bar');
-      if(targetBar){
-        const tr = targetBar.getBoundingClientRect();
-        const ex = document.createElement('div');
-        ex.className = 'dmg-explosion '+ballColor;
-        ex.style.left = (tr.left+tr.width/2)+'px';
-        ex.style.top  = (tr.top+tr.height/2)+'px';
-        document.body.appendChild(ex);
-        // 相手フィールドをフラッシュ
-        const oppField = document.getElementById('mg-field-opp');
-        if(oppField){ oppField.classList.remove('hp-flash'); void oppField.offsetWidth; oppField.classList.add('hp-flash'); }
-        setTimeout(()=>ex.remove(), 600);
-      }
-    }, 650);
+  // 爆弾その場爆発エフェクト（被弾側の爆弾エリアで爆発）
+  // net<0=子が被弾、net>0=親が被弾
+  const iReceiver = (net<0&&M.role==='guest')||(net>0&&M.role==='host');
+  const bombAreaId = iReceiver ? 'mg-bombs-bot' : 'mg-bombs-top';
+  const bombArea = document.getElementById(bombAreaId);
+  if(bombArea){
+    bombArea.querySelectorAll('.dmg-bomb').forEach((b,i)=>{
+      setTimeout(()=>{
+        b.classList.add('bomb-exploding');
+        setTimeout(()=>b.remove(),500);
+      },i*60);
+    });
   }
 
   // 少し待ってからHP反映
@@ -1005,24 +1003,55 @@ function flashField(who){
 }
 
 // dmgField の値をUIに表示（自分視点で有利/不利を判定）
-function updateDmgUI(net){
-  const inner=document.getElementById('mg-dmg-inner');
-  const val=document.getElementById('mg-dmg-val');
-  const label=document.getElementById('mg-dmg-label');
-  const icon=document.getElementById('mg-dmg-icon');
+// 爆弾アイコン文字列を生成（10個超えたら☄️換算）
+function makeBombHTML(count, color){
+  if(count<=0)return '';
+  const emoji = color==='blue'?'🔵':'🔴';
+  const meteors = Math.floor(count/10);
+  const bombs   = count % 10;
+  let h='';
+  for(let i=0;i<meteors;i++) h+=`<span class="dmg-bomb">☄️</span>`;
+  for(let i=0;i<bombs;i++)   h+=`<span class="dmg-bomb">${emoji}</span>`;
+  return h;
+}
+
+function updateDmgUI(net, countdown){
+  const inner = document.getElementById('mg-dmg-inner');
+  const icon  = document.getElementById('mg-dmg-icon');
+  const cd    = document.getElementById('mg-dmg-countdown');
+  const top   = document.getElementById('mg-bombs-top');
+  const bot   = document.getElementById('mg-bombs-bot');
   if(!inner)return;
-  const abs=Math.abs(net);
+  const abs = Math.abs(net);
+
   if(net===0){
     inner.className='dmg-pool-inner neutral';
-    icon.textContent='⚔';val.textContent='0';label.textContent='ダメージプール';
-  } else if(net<0){
-    // 親（host）有利 → 青
-    inner.className='dmg-pool-inner blue';
-    icon.textContent='🔵';val.textContent=abs;label.textContent='5秒後清算';
+    icon.textContent='⚔'; icon.style.display='';
+    cd.textContent='';
+    top.innerHTML=''; bot.innerHTML='';
+    return;
+  }
+
+  // net<0=青（親有利）, net>0=赤（子有利）
+  const color = net<0 ? 'blue' : 'red';
+  inner.className='dmg-pool-inner '+color;
+  icon.style.display='none';
+  cd.textContent = countdown!=null ? countdown+'s' : '';
+
+  // 爆弾の位置：ダメージを受ける側の近く
+  // net<0=子が受ける → 子の手前（下）が被弾側
+  //   親画面：奥（上）に青爆弾  子画面：手前（下）に青爆弾
+  // net>0=親が受ける → 親の手前（下）が被弾側
+  //   子画面：奥（上）に赤爆弾  親画面：手前（下）に赤爆弾
+  const bombs = makeBombHTML(abs, color);
+  if(net<0){
+    // 青：親画面→上、子画面→下
+    if(M.role==='host'){ top.innerHTML=bombs; bot.innerHTML=''; }
+    else               { bot.innerHTML=bombs; top.innerHTML=''; }
   } else {
-    // 子（guest）有利 → 赤
-    inner.className='dmg-pool-inner red';
-    icon.textContent='🔴';val.textContent=abs;label.textContent='5秒後清算';
+    // 赤：子画面→上、親画面→下
+    if(M.role==='guest'){ top.innerHTML=bombs; bot.innerHTML=''; }
+    else                { bot.innerHTML=bombs; top.innerHTML=''; }
   }
 }
 function updateMultiHPUI(){
@@ -1041,7 +1070,7 @@ async function rematch(){
   const hp=M.initHP||20;
   await fb().update(roomRef(M.roomId),{
     state:'matched', hostHP:hp, guestHP:hp,
-    dmgField:0, gameStart:0, hostReady:false, guestReady:false,
+    dmgField:0, dmgStart:0, gameStart:0, hostReady:false, guestReady:false,
   });
   const snap=await fb().get(roomRef(M.roomId));
   showReadyScreen(snap.val());
