@@ -170,15 +170,20 @@ body:not(.bg-default) #app { background: transparent; }
 @keyframes explode { 0%{width:10px;height:10px;opacity:1} 60%{width:80px;height:80px;opacity:0.9} 100%{width:120px;height:120px;opacity:0} }
 @keyframes hpFlash { 0%,100%{opacity:1} 30%,70%{opacity:0.15} 50%{opacity:0.5} }
 .hp-flash { animation:hpFlash 0.45s ease; }
+@keyframes hpShake { 0%,100%{transform:translateX(0)} 20%{transform:translateX(-6px)} 40%{transform:translateX(6px)} 60%{transform:translateX(-4px)} 80%{transform:translateX(4px)} }
+.hp-shake { animation:hpShake 0.4s ease; }
 
 /* ── 対戦フィールド ── */
 .field { border-radius: var(--radius); padding: 10px 14px; margin-bottom: 0; }
-.field--me  { background: rgba(108,99,255,0.08); border: 1px solid rgba(108,99,255,0.3); }
-.field--opp { background: rgba(255,77,77,0.08);  border: 1px solid rgba(255,77,77,0.3); }
+/* host=青, guest=赤（role固定色） */
+.field--host { background: rgba(108,99,255,0.08); border: 1px solid rgba(108,99,255,0.3); }
+.field--guest { background: rgba(255,77,77,0.08);  border: 1px solid rgba(255,77,77,0.3); }
+.field--host .field-name { color: #8b84ff; }
+.field--guest .field-name { color: #ff6b6b; }
+.field-hp--host { background: #6c63ff; width: 100%; }
+.field-hp--guest { background: #ff4d4d; width: 100%; }
 .field-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
 .field-name { font-size: 14px; font-weight: 700; }
-.field--me  .field-name { color: #8b84ff; }
-.field--opp .field-name { color: #ff6b6b; }
 .field-stats { display: flex; gap: 12px; }
 .field-stat { display: flex; flex-direction: column; align-items: center; }
 .field-stat-label { font-size: 9px; color: var(--text3); }
@@ -186,8 +191,6 @@ body:not(.bg-default) #app { background: transparent; }
 .field-hp-row { display: flex; align-items: center; gap: 8px; }
 .field-hp-bar-bg { flex: 1; height: 10px; background: var(--bg3); border-radius: 5px; overflow: hidden; }
 .field-hp-bar-fill { height: 100%; border-radius: 5px; transition: width 0.4s ease; }
-.field-hp--me  { background: #6c63ff; width: 100%; }
-.field-hp--opp { background: #ff4d4d; width: 100%; }
 .field-hp-num { font-size: 20px; font-weight: 700; font-family: var(--mono); min-width: 32px; text-align: center; color: var(--text); }
 
 /* ── ダメージプール（中央） ── */
@@ -454,8 +457,8 @@ body:not(.bg-default) #app { background: transparent; }
   <!-- MULTI GAME -->
   <div id="screen-multi-game" class="screen">
 
-    <!-- 相手フィールド（赤）← 上に -->
-    <div class="field field--opp">
+    <!-- 相手フィールド（上） -->
+    <div class="field" id="mg-field-opp">
       <div class="field-header">
         <span class="field-name" id="mg-opp-name">相手</span>
         <div class="field-stats">
@@ -463,7 +466,7 @@ body:not(.bg-default) #app { background: transparent; }
         </div>
       </div>
       <div class="field-hp-row">
-        <div class="field-hp-bar-bg"><div class="field-hp-bar-fill field-hp--opp" id="mg-opp-hp-bar"></div></div>
+        <div class="field-hp-bar-bg"><div class="field-hp-bar-fill" id="mg-opp-hp-bar"></div></div>
         <div class="field-hp-num" id="mg-opp-hp">20</div>
       </div>
     </div>
@@ -477,10 +480,10 @@ body:not(.bg-default) #app { background: transparent; }
       </div>
     </div>
 
-    <!-- 自分フィールド（青）← 下に -->
-    <div class="field field--me">
+    <!-- 自分フィールド（下） -->
+    <div class="field" id="mg-field-me">
       <div class="field-hp-row">
-        <div class="field-hp-bar-bg"><div class="field-hp-bar-fill field-hp--me" id="mg-my-hp-bar"></div></div>
+        <div class="field-hp-bar-bg"><div class="field-hp-bar-fill" id="mg-my-hp-bar"></div></div>
         <div class="field-hp-num" id="mg-my-hp">20</div>
       </div>
       <div class="field-header" style="margin-top:6px;margin-bottom:0;">
@@ -835,8 +838,14 @@ function startMultiGame(roomData){
   const oppName=M.oppName||(M.role==='host'?(roomData.guest||'相手'):roomData.host);M.oppName=oppName;
   document.getElementById('mg-my-name').textContent=M.myName;
   document.getElementById('mg-opp-name').textContent=oppName;
-  document.getElementById('mg-dmg-pending')&&(document.getElementById('mg-dmg-pending').textContent='－');
   updateDmgUI(0);
+  // role固定色を設定（host=青, guest=赤）
+  const myColor  = M.role==='host' ? 'host' : 'guest';
+  const oppColor = M.role==='host' ? 'guest' : 'host';
+  document.getElementById('mg-field-me').className  = 'field field--'+myColor;
+  document.getElementById('mg-field-opp').className = 'field field--'+oppColor;
+  document.getElementById('mg-my-hp-bar').className  = 'field-hp-bar-fill field-hp--'+myColor;
+  document.getElementById('mg-opp-hp-bar').className = 'field-hp-bar-fill field-hp--'+oppColor;
   updateMultiHPUI();updateMultiSkipUI();showS('multi-game');multiLoadQ();
   if(M.timeLimit>0){M.gameIv=setInterval(()=>tickMultiTimer(),200);}
   else{document.getElementById('mg-timer').textContent='∞';}
@@ -848,10 +857,12 @@ function startMultiGame(roomData){
     // HP変化を反映
     if(d[myHPKey]!==undefined&&d[myHPKey]!==M.myHP){
       M.myHP=d[myHPKey];updateMultiHPUI();
+      flashField('me'); // 自分が被弾
       if(!M.ended&&M.myHP<=0){M.ended=true;endMultiGame('lose');}
     }
     if(d[oppHPKey]!==undefined&&d[oppHPKey]!==M.oppHP){
       M.oppHP=d[oppHPKey];updateMultiHPUI();
+      // 相手が被弾はボールエフェクト側で処理済みのためフラッシュなし
       if(!M.ended&&M.oppHP<=0){M.ended=true;endMultiGame('win');}
     }
     // dmgField をUIに反映（タイマーはローカルで管理）
@@ -912,67 +923,72 @@ async function flushDmg(){
   await fb().set(fb().ref(fb().db,'rooms/'+M.roomId+'/dmgField'),0);
   if(net===0){updateDmgUI(0);return;}
 
-  // ボール飛翔エフェクト
-  const color=net<0?'blue':'red';
-  // net<0=親有利→相手(上)へ飛ぶ、net>0=子有利→自分(下)へ飛ぶ
-  const flyUp=net<0;
-  const pool=document.getElementById('mg-dmg-pool');
+  // ボール飛翔エフェクト（常に手前→奥 = 下から上、色はrole固定）
+  const ballColor = net<0 ? 'blue' : 'red'; // net<0=host有利=青、net>0=guest有利=赤
+  const pool = document.getElementById('mg-dmg-pool');
   if(pool){
-    const rect=pool.getBoundingClientRect();
-    const cx=rect.left+rect.width/2;
-    const cy=rect.top+rect.height/2;
-    // ボール生成
-    const ball=document.createElement('div');
-    ball.className='dmg-ball '+color;
-    ball.textContent=net<0?'🔵':'🔴';
-    ball.style.left=(cx-14)+'px';
-    ball.style.top=(cy-14)+'px';
-    ball.style.animation=(flyUp?'flyToTop':'flyToBottom')+' 0.7s ease-in forwards';
+    const rect = pool.getBoundingClientRect();
+    const cx = rect.left + rect.width/2;
+    const cy = rect.top + rect.height/2;
+    const ball = document.createElement('div');
+    ball.className = 'dmg-ball '+ballColor;
+    ball.textContent = net<0 ? '🔵' : '🔴';
+    ball.style.left = (cx-14)+'px';
+    ball.style.top  = (cy-14)+'px';
+    ball.style.animation = 'flyToTop 0.7s ease-in forwards'; // 常に上（奥=相手）へ
     document.body.appendChild(ball);
-    // 着弾位置の爆発
     setTimeout(()=>{
       ball.remove();
-      const targetEl=flyUp?document.getElementById('mg-opp-hp-bar'):document.getElementById('mg-my-hp-bar');
-      const tr=targetEl?targetEl.getBoundingClientRect():null;
-      if(tr){
-        const ex=document.createElement('div');
-        ex.className='dmg-explosion '+color;
-        ex.style.left=(tr.left+tr.width/2)+'px';
-        ex.style.top=(tr.top+tr.height/2)+'px';
+      // 着弾 → 相手HPバー（常に上=mg-opp-hp-bar）に爆発
+      const targetBar = document.getElementById('mg-opp-hp-bar');
+      if(targetBar){
+        const tr = targetBar.getBoundingClientRect();
+        const ex = document.createElement('div');
+        ex.className = 'dmg-explosion '+ballColor;
+        ex.style.left = (tr.left+tr.width/2)+'px';
+        ex.style.top  = (tr.top+tr.height/2)+'px';
         document.body.appendChild(ex);
-        // HPバーフラッシュ
-        const barEl=flyUp?document.getElementById('mg-opp-hp-bar'):document.getElementById('mg-my-hp-bar');
-        if(barEl){barEl.classList.remove('hp-flash');void barEl.offsetWidth;barEl.classList.add('hp-flash');}
-        setTimeout(()=>ex.remove(),600);
+        // 相手フィールドをフラッシュ
+        const oppField = document.getElementById('mg-field-opp');
+        if(oppField){ oppField.classList.remove('hp-flash'); void oppField.offsetWidth; oppField.classList.add('hp-flash'); }
+        setTimeout(()=>ex.remove(), 600);
       }
-    },650);
+    }, 650);
   }
 
   // 少し待ってからHP反映
   setTimeout(async()=>{
     updateDmgUI(0);
     if(net<0){
+      // 親有利 → 子がダメージ
       if(M.role==='host'){
+        // 自分が親 → 相手HPを削る（エフェクトは上で済み）
         M.oppHP=Math.max(0,M.oppHP+net);
         showPop('⚔ '+(-net)+' 相手HP');
         updateMultiHPUI();
         await fb().update(roomRef(M.roomId),{guestHP:M.oppHP});
         if(!M.ended&&M.oppHP<=0){M.ended=true;endMultiGame('win');}
       } else {
+        // 自分が子 → 自分がダメージ（手前フィールドをフラッシュ）
         M.myHP=Math.max(0,M.myHP+net);
         showPop((-net)+' ダメージ！');
         updateMultiHPUI();
+        flashField('me');
         await fb().update(roomRef(M.roomId),{guestHP:M.myHP});
         if(!M.ended&&M.myHP<=0){M.ended=true;endMultiGame('lose');}
       }
     } else {
+      // 子有利 → 親がダメージ
       if(M.role==='host'){
+        // 自分が親 → 自分がダメージ（手前フィールドをフラッシュ）
         M.myHP=Math.max(0,M.myHP-net);
         showPop(net+' ダメージ！');
         updateMultiHPUI();
+        flashField('me');
         await fb().update(roomRef(M.roomId),{hostHP:M.myHP});
         if(!M.ended&&M.myHP<=0){M.ended=true;endMultiGame('lose');}
       } else {
+        // 自分が子 → 相手HPを削る（エフェクトは上で済み）
         M.oppHP=Math.max(0,M.oppHP-net);
         showPop('⚔ '+net+' 相手HP');
         updateMultiHPUI();
@@ -981,6 +997,11 @@ async function flushDmg(){
       }
     }
   },700);
+}
+
+function flashField(who){
+  const el=document.getElementById(who==='me'?'mg-field-me':'mg-field-opp');
+  if(el){el.classList.remove('hp-flash');void el.offsetWidth;el.classList.add('hp-flash');}
 }
 
 // dmgField の値をUIに表示（自分視点で有利/不利を判定）
@@ -995,11 +1016,11 @@ function updateDmgUI(net){
     inner.className='dmg-pool-inner neutral';
     icon.textContent='⚔';val.textContent='0';label.textContent='ダメージプール';
   } else if(net<0){
-    // 親有利（青）
+    // 親（host）有利 → 青
     inner.className='dmg-pool-inner blue';
     icon.textContent='🔵';val.textContent=abs;label.textContent='5秒後清算';
   } else {
-    // 子有利（赤）
+    // 子（guest）有利 → 赤
     inner.className='dmg-pool-inner red';
     icon.textContent='🔴';val.textContent=abs;label.textContent='5秒後清算';
   }
