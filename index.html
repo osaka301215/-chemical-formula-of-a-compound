@@ -744,7 +744,7 @@ function startCountdown(roomData){
 function startMultiGame(roomData){
   if(M.waitUnsub){M.waitUnsub();M.waitUnsub=null;}
   _queue=[];M.myHP=MAX_HP;M.oppHP=MAX_HP;M.myCombo=0;M.myMaxCombo=0;M.myCorrect=0;M.myAnswered=0;
-  M.skipsLeft=MULTI_SKIP[M.diff];M.outDmg=0;M.dmgTimer=null;
+  M.skipsLeft=MULTI_SKIP[M.diff];M.dmgTimer=null;
   M.ended=false;M.qAnswered=false;M.gameStart=roomData.gameStart||Date.now();
   const oppName=M.oppName||(M.role==='host'?(roomData.guest||'相手'):roomData.host);M.oppName=oppName;
   document.getElementById('mg-my-name').textContent=M.myName;
@@ -754,23 +754,23 @@ function startMultiGame(roomData){
   updateMultiHPUI();updateMultiSkipUI();showS('multi-game');multiLoadQ();
   if(M.timeLimit>0){M.gameIv=setInterval(()=>tickMultiTimer(),200);}
   else{document.getElementById('mg-timer').textContent='∞';}
-  // リスナー：自分HP・相手HP・終了状態を監視
+  // リスナー：自分HP・相手HP・dmgField・終了状態を監視
   M.gameUnsub=fb().onValue(roomRef(M.roomId),snap=>{
     if(M.ended)return;const d=snap.val();if(!d)return;
     const myHPKey=M.role==='host'?'hostHP':'guestHP';
     const oppHPKey=M.role==='host'?'guestHP':'hostHP';
-    // 自分のHPが相手に削られた場合を反映
+    // HP変化を反映
     if(d[myHPKey]!==undefined&&d[myHPKey]!==M.myHP){
-      M.myHP=d[myHPKey];
-      updateMultiHPUI();
+      M.myHP=d[myHPKey];updateMultiHPUI();
       if(!M.ended&&M.myHP<=0){M.ended=true;endMultiGame('lose');}
     }
-    // 相手のHPが変化した場合を反映（相手の自爆 or こちらの攻撃が反映済み）
     if(d[oppHPKey]!==undefined&&d[oppHPKey]!==M.oppHP){
-      M.oppHP=d[oppHPKey];
-      updateMultiHPUI();
+      M.oppHP=d[oppHPKey];updateMultiHPUI();
       if(!M.ended&&M.oppHP<=0){M.ended=true;endMultiGame('win');}
     }
+    // dmgField をUIに反映（タイマーはローカルで管理）
+    const net=d.dmgField||0;
+    updateDmgUI(net);
     if(d.state==='ended'&&!M.ended){
       M.ended=true;endMultiGame(M.myHP>M.oppHP?'win':M.myHP<M.oppHP?'lose':'draw');
     }
@@ -784,53 +784,78 @@ function multiPick(btn,chosen,q){if(M.qAnswered||M.ended)return;M.qAnswered=true
 function multiSkip(){if(M.qAnswered||M.ended)return;if(MULTI_SKIP[M.diff]!==Infinity&&M.skipsLeft<=0)return;if(MULTI_SKIP[M.diff]!==Infinity)M.skipsLeft--;M.qAnswered=true;updateMultiSkipUI();document.querySelectorAll('#mg-choices .choice-btn').forEach(b=>b.disabled=true);document.getElementById('mg-bonus').textContent='スキップ';setTimeout(()=>multiLoadQ(),400);}
 async function multiSurrender(){if(M.ended)return;M.ended=true;clearInterval(M.gameIv);if(M.gameUnsub)M.gameUnsub();clearTimeout(M.dmgTimer);await fb().update(roomRef(M.roomId),{state:'ended'});endMultiGame('lose','降参');}
 
-// ── ダメージシステム（シンプル版）──
-// 自分→相手ダメージ：5秒間溜めて相手HPに書き込む
-function addOutDmg(dmg){
-  M.outDmg=(M.outDmg||0)+dmg;
-  document.getElementById('mg-dmg-pending').textContent=`⚔ 相手に ${M.outDmg} ダメージ蓄積中…`;
-  document.getElementById('mg-dmg-pending').className='dmg-pending to-opp';
-  if(!M.dmgTimer){
-    M.dmgTimer=setTimeout(()=>flushOutDmg(),5000);
+// ── ダメージ場システム ──
+// netDmg: 負=自分有利（相手にダメージ）、正=相手有利（自分にダメージ）
+// Firebaseの 'dmgField' キーに書き込んで双方が同じ値を参照
+// 最初の変化から5秒後に清算
+
+function dmgFieldRef(){return fb().ref(fb().db,'rooms/'+M.roomId+'/dmgField');}
+
+// 自分がコンボダメージを発生（負方向）
+async function addOutDmg(dmg){
+  if(M.ended)return;
+  const snap=await fb().get(dmgFieldRef());
+  const cur=snap.exists()?snap.val():0;
+  const next=cur-dmg; // 自分有利方向なので引く
+  await fb().set(dmgFieldRef(),next);
+  if(!M.dmgTimer)M.dmgTimer=setTimeout(()=>flushDmg(),5000);
+}
+
+// 不正解：自分が不利方向に+3
+async function takeSelfDmg(dmg){
+  if(M.ended)return;
+  const snap=await fb().get(dmgFieldRef());
+  const cur=snap.exists()?snap.val():0;
+  const next=cur+dmg; // 自分不利方向なので足す
+  await fb().set(dmgFieldRef(),next);
+  if(!M.dmgTimer)M.dmgTimer=setTimeout(()=>flushDmg(),5000);
+}
+
+// 5秒後に清算
+async function flushDmg(){
+  M.dmgTimer=null;
+  if(M.ended)return;
+  const snap=await fb().get(dmgFieldRef());
+  if(!snap.exists())return;
+  const net=snap.val();
+  if(net===0){updateDmgUI(0);return;}
+  // リセット
+  await fb().set(dmgFieldRef(),0);
+  if(net<0){
+    // 自分有利 → 相手HPを削る
+    const oppHPKey=M.role==='host'?'guestHP':'hostHP';
+    M.oppHP=Math.max(0,M.oppHP+net); // net は負なので足すと減る
+    showPop('⚔ -'+(-net)+' 相手HP');
+    updateMultiHPUI();
+    await fb().update(roomRef(M.roomId),{[oppHPKey]:M.oppHP});
+    if(!M.ended&&M.oppHP<=0){M.ended=true;endMultiGame('win');}
+  } else {
+    // 相手有利 → 自分HPを削る
+    const myHPKey=M.role==='host'?'hostHP':'guestHP';
+    M.myHP=Math.max(0,M.myHP-net);
+    showPop('-'+net+' HP');
+    updateMultiHPUI();
+    await fb().update(roomRef(M.roomId),{[myHPKey]:M.myHP});
+    if(!M.ended&&M.myHP<=0){M.ended=true;endMultiGame('lose');}
   }
 }
 
-// 5秒後に相手HPを実際に削る
-async function flushOutDmg(){
-  M.dmgTimer=null;
-  if(M.ended||!M.outDmg)return;
-  const dmg=M.outDmg;
-  M.outDmg=0;
-  M.oppHP=Math.max(0,M.oppHP-dmg);
-  showPop('⚔ -'+dmg+' 相手HP');
-  document.getElementById('mg-dmg-pending').textContent='－';
-  document.getElementById('mg-dmg-pending').className='dmg-pending neutral';
-  updateMultiHPUI();
-  // 相手HPをFirebaseに書き込む
-  const oppHPKey=M.role==='host'?'guestHP':'hostHP';
-  await fb().update(roomRef(M.roomId),{[oppHPKey]:M.oppHP});
-  if(!M.ended&&M.oppHP<=0){M.ended=true;endMultiGame('win');}
-}
-
-// 不正解：自分HPを即座に削る
-async function takeSelfDmg(dmg){
-  if(M.ended)return;
-  M.myHP=Math.max(0,M.myHP-dmg);
-  showPop('-'+dmg+' HP');
-  updateMultiHPUI();
-  const myHPKey=M.role==='host'?'hostHP':'guestHP';
-  await fb().update(roomRef(M.roomId),{[myHPKey]:M.myHP});
-  if(!M.ended&&M.myHP<=0){M.ended=true;endMultiGame('lose');}
+// ダメージ場の表示更新（リスナーから呼ぶ）
+function updateDmgUI(net){
+  const el=document.getElementById('mg-dmg-pending');
+  if(net===0){el.textContent='－';el.className='dmg-pending neutral';}
+  else if(net<0){el.textContent=`⚔ 相手に ${-net} ダメージ蓄積中…`;el.className='dmg-pending to-opp';}
+  else{el.textContent=`💥 自分に ${net} ダメージ蓄積中…`;el.className='dmg-pending to-me';}
 }
 function updateMultiHPUI(){document.getElementById('mg-my-hp').textContent=Math.max(0,M.myHP);document.getElementById('mg-opp-hp').textContent=Math.max(0,M.oppHP);document.getElementById('mg-my-hp-bar').style.width=Math.max(0,M.myHP)/MAX_HP*100+'%';document.getElementById('mg-opp-hp-bar').style.width=Math.max(0,M.oppHP)/MAX_HP*100+'%';}
 function updateMultiSkipUI(){const btn=document.getElementById('mg-skip-btn');const sl=M.skipsLeft;if(MULTI_SKIP[M.diff]===0){btn.style.display='none';return;}btn.style.display='';if(sl===Infinity){btn.textContent='スキップ';btn.disabled=false;}else if(sl>0){btn.textContent=`スキップ（残${sl}）`;btn.disabled=false;}else{btn.textContent='スキップ不可';btn.disabled=true;}}
 function endMultiGame(result,reason=''){clearInterval(M.gameIv);if(M.gameUnsub)M.gameUnsub();clearTimeout(M.dmgTimer);M.dmgTimer=null;const rate=M.myAnswered>0?Math.round(M.myCorrect/M.myAnswered*100):0;let medal,title;if(result==='win'){medal='🏆';title='勝利！';}else if(result==='lose'){medal='💀';title='敗北…';}else{medal='🤝';title='引き分け！';}document.getElementById('mr-medal').textContent=medal;document.getElementById('mr-title').textContent=title;document.getElementById('mr-sub').textContent=reason;document.getElementById('mr-cor').textContent=M.myCorrect+'問';document.getElementById('mr-rate').textContent=rate+'%';document.getElementById('mr-mc').textContent=M.myMaxCombo;showS('multi-result');}
 
 async function rematch(){
-  clearTimeout(M.dmgTimer);M.dmgTimer=null;M.outDmg=0;
+  clearTimeout(M.dmgTimer);M.dmgTimer=null;
   await fb().update(roomRef(M.roomId),{
     state:'matched', hostHP:MAX_HP, guestHP:MAX_HP,
-    gameStart:0, hostReady:false, guestReady:false,
+    dmgField:0, gameStart:0, hostReady:false, guestReady:false,
   });
   const snap=await fb().get(roomRef(M.roomId));
   showReadyScreen(snap.val());
