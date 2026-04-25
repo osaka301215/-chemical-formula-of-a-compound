@@ -744,33 +744,28 @@ function startCountdown(roomData){
 function startMultiGame(roomData){
   if(M.waitUnsub){M.waitUnsub();M.waitUnsub=null;}
   _queue=[];M.myHP=MAX_HP;M.oppHP=MAX_HP;M.myCombo=0;M.myMaxCombo=0;M.myCorrect=0;M.myAnswered=0;
-  M.skipsLeft=MULTI_SKIP[M.diff];M.outPend=0;M.outFireTime=0;M.inPend=0;M.inFireTime=0;M.incomingPendFireTime=0;M.settleTimeout=null;
+  M.skipsLeft=MULTI_SKIP[M.diff];M.outDmg=0;M.dmgTimer=null;
   M.ended=false;M.qAnswered=false;M.gameStart=roomData.gameStart||Date.now();
   const oppName=M.oppName||(M.role==='host'?(roomData.guest||'相手'):roomData.host);M.oppName=oppName;
   document.getElementById('mg-my-name').textContent=M.myName;
   document.getElementById('mg-opp-name').textContent=oppName;
+  document.getElementById('mg-dmg-pending').textContent='－';
+  document.getElementById('mg-dmg-pending').className='dmg-pending neutral';
   updateMultiHPUI();updateMultiSkipUI();showS('multi-game');multiLoadQ();
   if(M.timeLimit>0){M.gameIv=setInterval(()=>tickMultiTimer(),200);}
   else{document.getElementById('mg-timer').textContent='∞';}
+  // リスナー：相手HPの変化と終了状態だけ監視
   M.gameUnsub=fb().onValue(roomRef(M.roomId),snap=>{
     if(M.ended)return;const d=snap.val();if(!d)return;
-    const oppHPKey=M.role==='host'?'guestHP':'hostHP';
-    if(d[oppHPKey]!==undefined)M.oppHP=d[oppHPKey];
-    const pendKey=M.role==='host'?'pendingToHost':'pendingToGuest';
-    const pendTimeKey=M.role==='host'?'pendTimeHost':'pendTimeGuest';
-    // pending>0かつ新しいバッチのときだけ処理（0クリア後の再発火を無視）
-    if(d[pendKey]>0&&d[pendTimeKey]&&d[pendTimeKey]!==M.incomingPendFireTime){
-      M.incomingPendFireTime=d[pendTimeKey];M.inPend=d[pendKey];scheduleSettlement();
-    } else if(d[pendKey]>0&&d[pendTimeKey]===M.incomingPendFireTime){
-      M.inPend=d[pendKey];
+    const myHPKey=M.role==='host'?'hostHP':'guestHP';
+    // 自分のHPが相手に削られた場合を反映
+    if(d[myHPKey]!==undefined&&d[myHPKey]!==M.myHP){
+      M.myHP=d[myHPKey];
+      updateMultiHPUI();
+      if(!M.ended&&M.myHP<=0){M.ended=true;endMultiGame('lose');}
     }
-    updateMultiHPUI();updatePendingUI();
-    // 終了判定は排他的に
-    if(!M.ended){
-      if(M.myHP<=0&&M.oppHP<=0){M.ended=true;endMultiGame('draw','相殺KO');}
-      else if(M.oppHP<=0){M.ended=true;endMultiGame('win');}
-      else if(M.myHP<=0){M.ended=true;endMultiGame('lose');}
-      else if(d.state==='ended'){M.ended=true;endMultiGame(M.myHP>M.oppHP?'win':M.myHP<M.oppHP?'lose':'draw');}
+    if(d.state==='ended'&&!M.ended){
+      M.ended=true;endMultiGame(M.myHP>M.oppHP?'win':M.myHP<M.oppHP?'lose':'draw');
     }
   });
 }
@@ -778,59 +773,56 @@ function startMultiGame(roomData){
 function tickMultiTimer(){const elapsed=(Date.now()-M.gameStart)/1000;const left=Math.max(0,M.timeLimit-elapsed);const el=document.getElementById('mg-timer');el.textContent=Math.ceil(left);el.className='stat-value';if(left<=10)el.classList.add('timer-danger');else if(left<=20)el.classList.add('timer-warn');const pct=left/M.timeLimit*100;const bar=document.getElementById('mg-prog');bar.style.width=pct+'%';bar.className='progress-fill'+(left<=10?' prog-danger':left<=20?' prog-warn':'');if(left<=0){clearInterval(M.gameIv);timeUpMulti();}}
 function timeUpMulti(){if(M.ended)return;M.ended=true;endMultiGame(M.myHP>M.oppHP?'win':M.myHP<M.oppHP?'lose':'draw','時間切れ');}
 function multiLoadQ(){M.qAnswered=false;const q=nextQ(M.diff);M.currentQ=q;document.getElementById('mg-name').textContent=q.name;document.getElementById('mg-bonus').textContent='';const box=document.getElementById('mg-choices');box.innerHTML='';makeChoices(q,M.diff).forEach(ch=>{const b=document.createElement('button');b.className='choice-btn';b.innerHTML=toSubHTML(ch);b.dataset.ans=ch;b.onclick=()=>multiPick(b,ch,q);box.appendChild(b);});}
-function multiPick(btn,chosen,q){if(M.qAnswered||M.ended)return;M.qAnswered=true;M.myAnswered++;const ok=chosen===q.ans;document.querySelectorAll('#mg-choices .choice-btn').forEach(b=>{b.disabled=true;if(b.dataset.ans===q.ans)b.classList.add(ok?'correct':'reveal');});if(ok){btn.classList.add('correct');M.myCorrect++;M.myCombo++;if(M.myCombo>M.myMaxCombo)M.myMaxCombo=M.myCombo;const dmg=M.myCombo>=11?5:M.myCombo>=5?3:M.myCombo>=3?2:0;if(dmg>0)addOutgoingDamage(dmg);}else{btn.classList.add('wrong');M.myCombo=0;addSelfDamage(3);}document.getElementById('mg-cor').textContent=M.myCorrect;document.getElementById('mg-combo').textContent=M.myCombo;setTimeout(()=>multiLoadQ(),700);}
+function multiPick(btn,chosen,q){if(M.qAnswered||M.ended)return;M.qAnswered=true;M.myAnswered++;const ok=chosen===q.ans;document.querySelectorAll('#mg-choices .choice-btn').forEach(b=>{b.disabled=true;if(b.dataset.ans===q.ans)b.classList.add(ok?'correct':'reveal');});if(ok){btn.classList.add('correct');M.myCorrect++;M.myCombo++;if(M.myCombo>M.myMaxCombo)M.myMaxCombo=M.myCombo;const dmg=M.myCombo>=11?5:M.myCombo>=5?3:M.myCombo>=3?2:0;if(dmg>0)addOutDmg(dmg);}else{btn.classList.add('wrong');M.myCombo=0;takeSelfDmg(3);}document.getElementById('mg-cor').textContent=M.myCorrect;document.getElementById('mg-combo').textContent=M.myCombo;setTimeout(()=>multiLoadQ(),700);}
 function multiSkip(){if(M.qAnswered||M.ended)return;if(MULTI_SKIP[M.diff]!==Infinity&&M.skipsLeft<=0)return;if(MULTI_SKIP[M.diff]!==Infinity)M.skipsLeft--;M.qAnswered=true;updateMultiSkipUI();document.querySelectorAll('#mg-choices .choice-btn').forEach(b=>b.disabled=true);document.getElementById('mg-bonus').textContent='スキップ';setTimeout(()=>multiLoadQ(),400);}
-async function multiSurrender(){if(M.ended)return;M.ended=true;clearInterval(M.gameIv);if(M.gameUnsub)M.gameUnsub();clearTimeout(M.settleTimeout);await fb().update(roomRef(M.roomId),{state:'ended'});endMultiGame('lose','降参');}
-function addOutgoingDamage(dmg){
-  const isFirst=!M.outFireTime;
-  if(!M.outFireTime)M.outFireTime=Date.now();
-  M.outPend+=dmg;
-  if(isFirst)scheduleSettlement(); // 最初だけタイマーセット
-  updatePendingUI();pushPendingToFirebase();
-}
-function addSelfDamage(dmg){
-  const isFirst=!M.inFireTime&&!M.outFireTime;
-  if(!M.inFireTime)M.inFireTime=Date.now();
-  M.inPend+=dmg;
-  if(isFirst)scheduleSettlement(); // 最初だけタイマーセット
-  updatePendingUI();
-}
-function scheduleSettlement(){
-  // 既にタイマーが走っていたらセットしない
-  if(M.settleTimeout)return;
-  M.settleTimeout=setTimeout(()=>settleAll(),5000);
-}
-function settleAll(){
-  M.settleTimeout=null;
-  const out=M.outPend||0;const inc=M.inPend||0;const net=inc-out;
-  if(net>0){M.myHP=Math.max(0,M.myHP-Math.round(net));showPop('-'+Math.round(net)+' HP');}
-  else if(net<0){M.oppHP=Math.max(0,M.oppHP-Math.round(-net));showPop('⚔ -'+Math.round(-net)+' 相手HP');}
-  else if(out>0||inc>0){showPop('⚡ 相殺！');}
-  M.outPend=0;M.outFireTime=0;M.inPend=0;M.inFireTime=0;M.incomingPendFireTime=0;
-  updateMultiHPUI();updatePendingUI();pushHPToFirebase();
-  // Firebase側のpendingも0にクリア（リスナーによる再発火を防止）
-  const pKey=M.role==='host'?'pendingToGuest':'pendingToHost';
-  const ptKey=M.role==='host'?'pendTimeGuest':'pendTimeHost';
-  fb().update(roomRef(M.roomId),{[pKey]:0,[ptKey]:0});
-  // 終了判定は排他的に（両方0でも引き分けにする）
-  if(!M.ended){
-    if(M.myHP<=0&&M.oppHP<=0){M.ended=true;endMultiGame('draw','相殺KO');}
-    else if(M.myHP<=0){M.ended=true;endMultiGame('lose');}
-    else if(M.oppHP<=0){M.ended=true;endMultiGame('win');}
+async function multiSurrender(){if(M.ended)return;M.ended=true;clearInterval(M.gameIv);if(M.gameUnsub)M.gameUnsub();clearTimeout(M.dmgTimer);await fb().update(roomRef(M.roomId),{state:'ended'});endMultiGame('lose','降参');}
+
+// ── ダメージシステム（シンプル版）──
+// 自分→相手ダメージ：5秒間溜めて相手HPに書き込む
+function addOutDmg(dmg){
+  M.outDmg=(M.outDmg||0)+dmg;
+  document.getElementById('mg-dmg-pending').textContent=`⚔ 相手に ${M.outDmg} ダメージ蓄積中…`;
+  document.getElementById('mg-dmg-pending').className='dmg-pending to-opp';
+  if(!M.dmgTimer){
+    M.dmgTimer=setTimeout(()=>flushOutDmg(),5000);
   }
 }
-async function pushPendingToFirebase(){const pKey=M.role==='host'?'pendingToGuest':'pendingToHost';const ptKey=M.role==='host'?'pendTimeGuest':'pendTimeHost';await fb().update(roomRef(M.roomId),{[pKey]:M.outPend,[ptKey]:M.outFireTime||Date.now()});}
-async function pushHPToFirebase(){const mKey=M.role==='host'?'hostHP':'guestHP';const oKey=M.role==='host'?'guestHP':'hostHP';await fb().update(roomRef(M.roomId),{[mKey]:M.myHP,[oKey]:M.oppHP});}
+
+// 5秒後に相手HPを実際に削る
+async function flushOutDmg(){
+  M.dmgTimer=null;
+  if(M.ended||!M.outDmg)return;
+  const dmg=M.outDmg;
+  M.outDmg=0;
+  M.oppHP=Math.max(0,M.oppHP-dmg);
+  showPop('⚔ -'+dmg+' 相手HP');
+  document.getElementById('mg-dmg-pending').textContent='－';
+  document.getElementById('mg-dmg-pending').className='dmg-pending neutral';
+  updateMultiHPUI();
+  // 相手HPをFirebaseに書き込む
+  const oppHPKey=M.role==='host'?'guestHP':'hostHP';
+  await fb().update(roomRef(M.roomId),{[oppHPKey]:M.oppHP});
+  if(!M.ended&&M.oppHP<=0){M.ended=true;endMultiGame('win');}
+}
+
+// 不正解：自分HPを即座に削る
+async function takeSelfDmg(dmg){
+  if(M.ended)return;
+  M.myHP=Math.max(0,M.myHP-dmg);
+  showPop('-'+dmg+' HP');
+  updateMultiHPUI();
+  const myHPKey=M.role==='host'?'hostHP':'guestHP';
+  await fb().update(roomRef(M.roomId),{[myHPKey]:M.myHP});
+  if(!M.ended&&M.myHP<=0){M.ended=true;endMultiGame('lose');}
+}
 function updateMultiHPUI(){document.getElementById('mg-my-hp').textContent=Math.max(0,M.myHP);document.getElementById('mg-opp-hp').textContent=Math.max(0,M.oppHP);document.getElementById('mg-my-hp-bar').style.width=Math.max(0,M.myHP)/MAX_HP*100+'%';document.getElementById('mg-opp-hp-bar').style.width=Math.max(0,M.oppHP)/MAX_HP*100+'%';}
-function updatePendingUI(){const el=document.getElementById('mg-dmg-pending');const out=M.outPend||0;const inc=M.inPend||0;const net=inc-out;if(out===0&&inc===0){el.textContent='－';el.className='dmg-pending neutral';return;}if(net<0){el.textContent=`⚔ 相手に ${-net} ダメージ蓄積中…`;el.className='dmg-pending to-opp';}else if(net>0){el.textContent=`💥 自分に ${net} ダメージ蓄積中…`;el.className='dmg-pending to-me';}else{el.textContent='⚡ ダメージ相殺！';el.className='dmg-pending cancel';}}
 function updateMultiSkipUI(){const btn=document.getElementById('mg-skip-btn');const sl=M.skipsLeft;if(MULTI_SKIP[M.diff]===0){btn.style.display='none';return;}btn.style.display='';if(sl===Infinity){btn.textContent='スキップ';btn.disabled=false;}else if(sl>0){btn.textContent=`スキップ（残${sl}）`;btn.disabled=false;}else{btn.textContent='スキップ不可';btn.disabled=true;}}
-function endMultiGame(result,reason=''){clearInterval(M.gameIv);if(M.gameUnsub)M.gameUnsub();clearTimeout(M.settleTimeout);const rate=M.myAnswered>0?Math.round(M.myCorrect/M.myAnswered*100):0;let medal,title;if(result==='win'){medal='🏆';title='勝利！';}else if(result==='lose'){medal='💀';title='敗北…';}else{medal='🤝';title='引き分け！';}document.getElementById('mr-medal').textContent=medal;document.getElementById('mr-title').textContent=title;document.getElementById('mr-sub').textContent=reason;document.getElementById('mr-cor').textContent=M.myCorrect+'問';document.getElementById('mr-rate').textContent=rate+'%';document.getElementById('mr-mc').textContent=M.myMaxCombo;showS('multi-result');}
+function endMultiGame(result,reason=''){clearInterval(M.gameIv);if(M.gameUnsub)M.gameUnsub();clearTimeout(M.dmgTimer);M.dmgTimer=null;const rate=M.myAnswered>0?Math.round(M.myCorrect/M.myAnswered*100):0;let medal,title;if(result==='win'){medal='🏆';title='勝利！';}else if(result==='lose'){medal='💀';title='敗北…';}else{medal='🤝';title='引き分け！';}document.getElementById('mr-medal').textContent=medal;document.getElementById('mr-title').textContent=title;document.getElementById('mr-sub').textContent=reason;document.getElementById('mr-cor').textContent=M.myCorrect+'問';document.getElementById('mr-rate').textContent=rate+'%';document.getElementById('mr-mc').textContent=M.myMaxCombo;showS('multi-result');}
 
 async function rematch(){
-  // ルームをwaiting状態にリセットしてReadyスクリーンへ
+  clearTimeout(M.dmgTimer);M.dmgTimer=null;M.outDmg=0;
   await fb().update(roomRef(M.roomId),{
     state:'matched', hostHP:MAX_HP, guestHP:MAX_HP,
-    pendingToHost:0, pendingToGuest:0, pendTimeHost:0, pendTimeGuest:0,
     gameStart:0, hostReady:false, guestReady:false,
   });
   const snap=await fb().get(roomRef(M.roomId));
