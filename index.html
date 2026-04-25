@@ -886,6 +886,9 @@ function startCountdown(roomData){
 function startMultiGame(roomData){
   if(M.waitUnsub){M.waitUnsub();M.waitUnsub=null;}
   const hp=roomData.initHP||M.initHP||20;
+  // roomDataからtimeLimit・diffを確実に取得
+  if(roomData.timeLimit!==undefined)M.timeLimit=roomData.timeLimit;
+  if(roomData.diff)M.diff=roomData.diff;
   _queue=[];M.myHP=hp;M.oppHP=hp;M.myCombo=0;M.myMaxCombo=0;M.myCorrect=0;M.myAnswered=0;M.myMiss=0;
   M.skipsLeft=MULTI_SKIP[M.diff];M.dmgTimer=null;M.cdIv=null;M.localDmgStart=0;M.latestNet=0;M.cpuIv=null;
   M.ended=false;M.qAnswered=false;M.gameStart=roomData.gameStart||Date.now();
@@ -1163,7 +1166,7 @@ function endMultiGame(result,reason=''){clearInterval(M.gameIv);clearInterval(M.
 async function startCpuBattle(){
   const name=(document.getElementById('cpu-name').value.trim()||'プレイヤー').slice(0,10);
   const diff=CPU.pendingDiff||'normal';
-  const timeLimit=CPU.pendingTime||90;
+  const timeLimit=CPU.pendingTime; // 0=無制限をそのまま渡す
   const initHP=CPU.pendingHP||20;
   const roomId=genRoomId();
 
@@ -1171,20 +1174,19 @@ async function startCpuBattle(){
   M.roomId=roomId; M.role='host'; M.myName=name;
   M.diff=diff; M.timeLimit=timeLimit; M.initHP=initHP;
   M.isCpu=true;
+  M.oppName='CPU🤖';
 
   await fb().set(roomRef(roomId),{
     host:name, guest:'CPU🤖', diff, timeLimit, initHP,
     state:'matched',
     hostHP:initHP, guestHP:initHP,
     dmgField:0, dmgStart:0, gameStart:0,
-    hostReady:true, guestReady:true,
+    hostReady:false, guestReady:false,
   });
 
-  // Ready画面をスキップしてカウントダウンへ
-  M.oppName='CPU🤖';
-  await fb().update(roomRef(roomId),{state:'countdown',gameStart:Date.now()+4000});
-  const snap=await fb().get(roomRef(roomId));
-  startCountdown(snap.val());
+  // Ready画面へ（CPUは即座にReadyにする）
+  await fb().update(roomRef(roomId),{guestReady:true});
+  showReadyScreen({host:name,guest:'CPU🤖',diff,timeLimit,initHP,state:'matched',hostReady:false,guestReady:true});
 }
 
 // CPUのゲームループ（ホスト側でローカル実行）
