@@ -279,8 +279,9 @@ body.bg-default #app { background: transparent; }
       <button class="bg-btn" onclick="setBg('fall')">🍂 秋</button>
       <button class="bg-btn" onclick="setBg('winter')">❄️ 冬</button>
     </div>
-    <div style="text-align:center;margin-top:8px;">
-      <button class="bg-btn" id="mute-btn" onclick="toggleMute()">🔊 音あり</button>
+    <div style="text-align:center;margin-top:8px;display:flex;justify-content:center;gap:8px;">
+      <button class="bg-btn" id="bgm-btn" onclick="toggleBgm()">🎵 音楽ON</button>
+      <button class="bg-btn" id="sfx-btn" onclick="toggleSfx()">🔊 効果音ON</button>
     </div>
   </div>
 
@@ -717,10 +718,14 @@ function showS(n){document.querySelectorAll('.screen').forEach(s=>s.classList.re
 function showPop(text){const el=document.createElement('div');el.className='bonus-pop';el.textContent=text;document.body.appendChild(el);setTimeout(()=>el.remove(),950);}
 function goMode(m){showS(m==='solo'?'solo-home':'multi-top');}
 function toggleRule(id){const el=document.getElementById(id);el.classList.toggle('open');}
-function toggleMute(){
+function toggleBgm(){
+  const muted=!BGM._muted;
+  BGM.setMute(muted);
+  document.getElementById('bgm-btn').textContent=muted?'🎵 音楽OFF':'🎵 音楽ON';
+}
+function toggleSfx(){
   const muted=SFX.toggleMute();
-  const btn=document.getElementById('mute-btn');
-  btn.textContent=muted?'🔇 音なし':'🔊 音あり';
+  document.getElementById('sfx-btn').textContent=muted?'🔊 効果音OFF':'🔊 効果音ON';
 }
 
 function goSoloReady(){
@@ -856,9 +861,19 @@ function setBg(season){
   const map={default:'🌙 デフォルト',spring:'🌸 春',summer:'🌻 夏',fall:'🍂 秋',winter:'❄️ 冬'};
   document.querySelectorAll('.bg-btn').forEach(b=>{if(b.textContent.trim()===map[season])b.classList.add('sel');});
   try{localStorage.setItem('bgSeason',season);}catch(e){}
+  BGM.play('bg-'+season);
 }
 // 起動時に前回の背景を復元
-(function(){try{const s=localStorage.getItem('bgSeason');if(s)setBg(s);else document.body.classList.add('bg-default');}catch(e){document.body.classList.add('bg-default');}})();
+(function(){
+  try{const s=localStorage.getItem('bgSeason');if(s)setBg(s);else setBg('default');}
+  catch(e){setBg('default');}
+  // 最初のユーザー操作でBGM開始（自動再生制限対策）
+  document.addEventListener('click',()=>{
+    if(BGM._current&&(!BGM._audio||BGM._audio.paused)){
+      BGM.play(BGM._current);
+    }
+  },{once:true});
+})();
 
 let _queue=[];
 function makeQueue(diff){const ik=diff==='oni'?'hard':diff;return shuffle([...ION[ik],...shuffle(OTHER).slice(0,24)]);}
@@ -866,7 +881,40 @@ function nextQ(diff){if(!_queue.length)_queue=makeQueue(diff);return _queue.shif
 function genWC(q){const{c,cv,a,av}=q,g=gcd(cv,av),cNc=av/g,cNa=cv/g;return[[1,1],[1,2],[1,3],[2,1],[2,2],[2,3],[3,1],[3,2],[3,3]].filter(([nc,na])=>!(nc===cNc&&na===cNa)).slice(0,4).map(([nc,na])=>{const pA=na>1&&a.length>2,pC=nc>1&&c.length>2;return(pC?'('+c+')'+nc:c+(nc===1?'':nc))+(pA?'('+a+')'+na:a+(na===1?'':na));});}
 function makeChoices(q,diff){const ik=diff==='oni'?'hard':diff;const correct=q.ans,used=new Set([correct]);const d=[];if(q.type==='other'){for(const p of shuffle(OTHER)){if(!used.has(p.ans)&&d.length<3){used.add(p.ans);d.push(p.ans);}}}else{const ip=ION[ik];for(const p of shuffle(ip.filter(p=>p.c===q.c&&p.ans!==correct))){if(!used.has(p.ans)&&d.length<2){used.add(p.ans);d.push(p.ans);}}for(const p of shuffle(ip.filter(p=>p.a===q.a&&p.ans!==correct))){if(!used.has(p.ans)&&d.length<3){used.add(p.ans);d.push(p.ans);}}if(d.length<3){for(const w of genWC(q)){if(!used.has(w)&&d.length<3){used.add(w);d.push(w);}}}for(const p of shuffle([...ip,...OTHER])){if(d.length>=3)break;if(!used.has(p.ans)){used.add(p.ans);d.push(p.ans);}}}return shuffle([correct,...d.slice(0,3)]);}
 
-// ── 効果音システム ──
+// ── BGMシステム ──
+const BGM = {
+  _audio: null,
+  _current: null,
+  _muted: false,
+  _map: {
+    'bg-default': 'defalt.mp3',
+    'bg-spring':  'spr.mp3',
+    'bg-summer':  'sum.mp3',
+    'bg-fall':    'fall.mp3',
+    'bg-winter':  'wint.mp3',
+  },
+  play(season){
+    const file = this._map[season];
+    if(!file) return;
+    if(this._current === file && this._audio && !this._audio.paused) return;
+    this.stop();
+    this._current = file;
+    this._audio = new Audio(file);
+    this._audio.loop = true;
+    this._audio.volume = 0.4;
+    this._audio.muted = this._muted;
+    this._audio.play().catch(()=>{});
+  },
+  stop(){
+    if(this._audio){ this._audio.pause(); this._audio = null; }
+    this._current = null;
+  },
+  setMute(muted){
+    this._muted = muted;
+    if(this._audio) this._audio.muted = muted;
+  },
+  currentSeason(){ return document.body.className || 'bg-default'; }
+};
 const SFX = {
   _ctx: null,
   _muted: false,
