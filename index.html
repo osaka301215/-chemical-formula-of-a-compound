@@ -1210,10 +1210,18 @@ function updateDmgUI(net, countdown){
   const abs = Math.abs(net);
 
   if(net===0){
-    inner.className='dmg-pool-inner neutral';
-    icon.textContent='⚔'; icon.style.display='';
-    cd.textContent='';
-    top.innerHTML=''; bot.innerHTML='';
+    if(countdown!=null&&countdown>0){
+      // 相殺されたがカウントは継続
+      inner.className='dmg-pool-inner neutral';
+      icon.textContent='⚡'; icon.style.display='';
+      cd.textContent=countdown+'s';
+      top.innerHTML=''; bot.innerHTML='';
+    } else {
+      inner.className='dmg-pool-inner neutral';
+      icon.textContent='⚔'; icon.style.display='';
+      cd.textContent='';
+      top.innerHTML=''; bot.innerHTML='';
+    }
     return;
   }
 
