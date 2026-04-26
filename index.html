@@ -292,7 +292,7 @@ body.bg-default #app { background: transparent; }
       <div class="hint-box">むずかしい・鬼は5問連続正答から時間ボーナス（残り30s以上+2.0s / 15〜30s +1.5s / 15s未満 +1.0s）</div>
     </div>
     <div class="card"><div class="card-label">プレイヤー名</div><input id="solo-name" type="text" maxlength="10" placeholder="名前（最大10文字）" class="text-input" /></div>
-    <button class="btn btn--primary btn--full" onclick="startSolo()">スタート</button>
+    <button class="btn btn--primary btn--full" onclick="goSoloReady()">スタート</button>
     <button class="btn btn--full" style="margin-top:8px;" onclick="showRanking(S.pendingDiff||'normal')">🏆 ランキングを見る</button>
     <button class="rule-toggle" onclick="toggleRule('rule-solo')">❓ ルールを見る</button>
     <div class="rule-box" id="rule-solo">
@@ -301,6 +301,18 @@ body.bg-default #app { background: transparent; }
       <div class="rule-item"><b>コンボボーナス</b>：連続正解でスコアが10pts/問ずつ増加（最大+80pts）</div>
       <div class="rule-item"><b>時間ボーナス</b>（むずかしい・鬼のみ）：5連続正解から残り時間に応じてボーナス秒数加算</div>
       <div class="rule-item"><b>スキップ</b>：かんたん=無制限 / ふつう=3回 / むずかしい=1回 / 鬼=なし</div>
+    </div>
+  </div>
+
+  <!-- SOLO READY -->
+  <div id="screen-solo-ready" class="screen">
+    <div class="wait-block">
+      <div class="wait-title" id="solo-ready-title">準備はいい？</div>
+      <div style="font-size:13px;color:var(--text2);margin-bottom:20px;" id="solo-ready-msg">ボタンを押したらカウントダウン開始！</div>
+      <button class="btn btn--primary btn--full" id="solo-ready-btn" onclick="pressSoloReady()" style="font-size:18px;padding:16px;">Ready？</button>
+    </div>
+    <div id="solo-ready-countdown" style="display:none;text-align:center;padding:2rem 0;">
+      <div style="font-size:80px;font-weight:700;color:var(--accent2);" id="solo-countdown-num">3</div>
     </div>
   </div>
 
@@ -341,7 +353,7 @@ body.bg-default #app { background: transparent; }
     </div>
     <div id="sr-wrongs"></div>
     <div class="btn-row">
-      <button class="btn btn--primary" onclick="startSolo()">もう一度</button>
+      <button class="btn btn--primary" onclick="goSoloReady()">もう一度</button>
       <button class="btn" onclick="showS('solo-home')">メニュー</button>
     </div>
     <button class="btn btn--full" style="margin-top:8px;border-color:var(--amber);color:var(--amber);" onclick="showRegisterModal()">🏆 ランキングに登録する</button>
@@ -694,6 +706,36 @@ function showS(n){document.querySelectorAll('.screen').forEach(s=>s.classList.re
 function showPop(text){const el=document.createElement('div');el.className='bonus-pop';el.textContent=text;document.body.appendChild(el);setTimeout(()=>el.remove(),950);}
 function goMode(m){showS(m==='solo'?'solo-home':'multi-top');}
 function toggleRule(id){const el=document.getElementById(id);el.classList.toggle('open');}
+
+function goSoloReady(){
+  // 設定を保存してReady画面へ
+  S.pendingName=(document.getElementById('solo-name').value.trim()||'プレイヤー').slice(0,10);
+  document.getElementById('solo-ready-title').textContent='準備はいい？';
+  document.getElementById('solo-ready-msg').textContent='ボタンを押したらカウントダウン開始！';
+  document.getElementById('solo-ready-btn').style.display='';
+  document.getElementById('solo-ready-btn').disabled=false;
+  document.getElementById('solo-ready-countdown').style.display='none';
+  showS('solo-ready');
+}
+
+function pressSoloReady(){
+  document.getElementById('solo-ready-btn').style.display='none';
+  document.getElementById('solo-ready-countdown').style.display='block';
+  const nums=['3','2','1','Go!'];let i=0;
+  const el=document.getElementById('solo-countdown-num');
+  el.textContent=nums[0];
+  const iv=setInterval(()=>{
+    i++;
+    if(i<nums.length){
+      el.textContent=nums[i];
+      el.style.animation='none';void el.offsetWidth;
+      el.style.animation='countPop 0.8s ease';
+    } else {
+      clearInterval(iv);
+      startSolo();
+    }
+  },900);
+}
 
 // ── ランキング ──
 const DIFF_LABEL={easy:'かんたん',normal:'ふつう',hard:'むずかしい',oni:'鬼'};
