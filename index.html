@@ -740,12 +740,14 @@ function pressSoloReady(){
   const nums=['3','2','1','Go!'];let i=0;
   const el=document.getElementById('solo-countdown-num');
   el.textContent=nums[0];
+  SFX.countdown(false);
   const iv=setInterval(()=>{
     i++;
     if(i<nums.length){
       el.textContent=nums[i];
       el.style.animation='none';void el.offsetWidth;
       el.style.animation='countPop 0.8s ease';
+      SFX.countdown(nums[i]==='Go!');
     } else {
       clearInterval(iv);
       startSolo();
@@ -924,14 +926,15 @@ const SFX = {
     src.start();
   });},
 
-  // カウントダウン：ビープ音
-  countdown(){ this.play(ctx=>{
+  // カウントダウン：高めの電子音
+  countdown(high=false){ this.play(ctx=>{
     const o=ctx.createOscillator(), g=ctx.createGain();
     o.connect(g); g.connect(ctx.destination);
-    o.type='sine'; o.frequency.value=880;
-    g.gain.setValueAtTime(0.2,ctx.currentTime);
-    g.gain.linearRampToValueAtTime(0,ctx.currentTime+0.1);
-    o.start(); o.stop(ctx.currentTime+0.1);
+    o.type='square';
+    o.frequency.value=high?1200:1000;
+    g.gain.setValueAtTime(0.15,ctx.currentTime);
+    g.gain.linearRampToValueAtTime(0,ctx.currentTime+0.08);
+    o.start(); o.stop(ctx.currentTime+0.08);
   });},
 
   // 勝利：明るいファンファーレ
@@ -1074,9 +1077,13 @@ function startCountdown(roomData){
   document.getElementById('ready-countdown').style.display='block';
   const nums=['3','2','1','Go!'];let i=0;
   const el=document.getElementById('countdown-num');el.textContent=nums[0];
+  SFX.countdown(false);
   const iv=setInterval(()=>{
     i++;
-    if(i<nums.length){el.textContent=nums[i];el.style.animation='none';void el.offsetWidth;el.style.animation='countPop 0.8s ease';}
+    if(i<nums.length){
+      el.textContent=nums[i];el.style.animation='none';void el.offsetWidth;el.style.animation='countPop 0.8s ease';
+      SFX.countdown(nums[i]==='Go!');
+    }
     else{clearInterval(iv);M.countingDown=false;startMultiGame(roomData);}
   },900);
 }
