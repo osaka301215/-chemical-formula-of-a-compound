@@ -279,6 +279,9 @@ body.bg-default #app { background: transparent; }
       <button class="bg-btn" onclick="setBg('fall')">🍂 秋</button>
       <button class="bg-btn" onclick="setBg('winter')">❄️ 冬</button>
     </div>
+    <div style="text-align:center;margin-top:8px;">
+      <button class="bg-btn" id="mute-btn" onclick="toggleMute()">🔊 音あり</button>
+    </div>
   </div>
 
   <!-- SOLO HOME -->
@@ -714,6 +717,11 @@ function showS(n){document.querySelectorAll('.screen').forEach(s=>s.classList.re
 function showPop(text){const el=document.createElement('div');el.className='bonus-pop';el.textContent=text;document.body.appendChild(el);setTimeout(()=>el.remove(),950);}
 function goMode(m){showS(m==='solo'?'solo-home':'multi-top');}
 function toggleRule(id){const el=document.getElementById(id);el.classList.toggle('open');}
+function toggleMute(){
+  const muted=SFX.toggleMute();
+  const btn=document.getElementById('mute-btn');
+  btn.textContent=muted?'🔇 音なし':'🔊 音あり';
+}
 
 function goSoloReady(){
   // 設定を保存してReady画面へ
@@ -856,7 +864,107 @@ function nextQ(diff){if(!_queue.length)_queue=makeQueue(diff);return _queue.shif
 function genWC(q){const{c,cv,a,av}=q,g=gcd(cv,av),cNc=av/g,cNa=cv/g;return[[1,1],[1,2],[1,3],[2,1],[2,2],[2,3],[3,1],[3,2],[3,3]].filter(([nc,na])=>!(nc===cNc&&na===cNa)).slice(0,4).map(([nc,na])=>{const pA=na>1&&a.length>2,pC=nc>1&&c.length>2;return(pC?'('+c+')'+nc:c+(nc===1?'':nc))+(pA?'('+a+')'+na:a+(na===1?'':na));});}
 function makeChoices(q,diff){const ik=diff==='oni'?'hard':diff;const correct=q.ans,used=new Set([correct]);const d=[];if(q.type==='other'){for(const p of shuffle(OTHER)){if(!used.has(p.ans)&&d.length<3){used.add(p.ans);d.push(p.ans);}}}else{const ip=ION[ik];for(const p of shuffle(ip.filter(p=>p.c===q.c&&p.ans!==correct))){if(!used.has(p.ans)&&d.length<2){used.add(p.ans);d.push(p.ans);}}for(const p of shuffle(ip.filter(p=>p.a===q.a&&p.ans!==correct))){if(!used.has(p.ans)&&d.length<3){used.add(p.ans);d.push(p.ans);}}if(d.length<3){for(const w of genWC(q)){if(!used.has(w)&&d.length<3){used.add(w);d.push(w);}}}for(const p of shuffle([...ip,...OTHER])){if(d.length>=3)break;if(!used.has(p.ans)){used.add(p.ans);d.push(p.ans);}}}return shuffle([correct,...d.slice(0,3)]);}
 
-// ── 状態オブジェクトを先に定義 ──
+// ── 効果音システム ──
+const SFX = {
+  _ctx: null,
+  _muted: false,
+  ctx(){
+    if(!this._ctx) this._ctx = new (window.AudioContext||window.webkitAudioContext)();
+    return this._ctx;
+  },
+  play(fn){ if(this._muted) return; try{ fn(this.ctx()); }catch(e){} },
+
+  // 正解：明るい上昇音
+  correct(){ this.play(ctx=>{
+    const o=ctx.createOscillator(), g=ctx.createGain();
+    o.connect(g); g.connect(ctx.destination);
+    o.type='sine'; o.frequency.setValueAtTime(660,ctx.currentTime);
+    o.frequency.linearRampToValueAtTime(880,ctx.currentTime+0.12);
+    g.gain.setValueAtTime(0.25,ctx.currentTime);
+    g.gain.linearRampToValueAtTime(0,ctx.currentTime+0.18);
+    o.start(); o.stop(ctx.currentTime+0.18);
+  });},
+
+  // 不正解：低い下降音
+  wrong(){ this.play(ctx=>{
+    const o=ctx.createOscillator(), g=ctx.createGain();
+    o.connect(g); g.connect(ctx.destination);
+    o.type='sawtooth'; o.frequency.setValueAtTime(300,ctx.currentTime);
+    o.frequency.linearRampToValueAtTime(150,ctx.currentTime+0.25);
+    g.gain.setValueAtTime(0.2,ctx.currentTime);
+    g.gain.linearRampToValueAtTime(0,ctx.currentTime+0.25);
+    o.start(); o.stop(ctx.currentTime+0.25);
+  });},
+
+  // ダメージ与える：軽い爆発音
+  dmgOut(){ this.play(ctx=>{
+    const buf=ctx.createBuffer(1,ctx.sampleRate*0.3,ctx.sampleRate);
+    const d=buf.getChannelData(0);
+    for(let i=0;i<d.length;i++) d[i]=(Math.random()*2-1)*Math.pow(1-i/d.length,2);
+    const src=ctx.createBufferSource(), g=ctx.createGain();
+    const filter=ctx.createBiquadFilter();
+    filter.type='bandpass'; filter.frequency.value=600;
+    src.buffer=buf; src.connect(filter); filter.connect(g); g.connect(ctx.destination);
+    g.gain.setValueAtTime(0.4,ctx.currentTime);
+    g.gain.linearRampToValueAtTime(0,ctx.currentTime+0.3);
+    src.start();
+  });},
+
+  // ダメージ受ける：重めの爆発音
+  dmgIn(){ this.play(ctx=>{
+    const buf=ctx.createBuffer(1,ctx.sampleRate*0.4,ctx.sampleRate);
+    const d=buf.getChannelData(0);
+    for(let i=0;i<d.length;i++) d[i]=(Math.random()*2-1)*Math.pow(1-i/d.length,1.5);
+    const src=ctx.createBufferSource(), g=ctx.createGain();
+    const filter=ctx.createBiquadFilter();
+    filter.type='lowpass'; filter.frequency.value=300;
+    src.buffer=buf; src.connect(filter); filter.connect(g); g.connect(ctx.destination);
+    g.gain.setValueAtTime(0.5,ctx.currentTime);
+    g.gain.linearRampToValueAtTime(0,ctx.currentTime+0.4);
+    src.start();
+  });},
+
+  // カウントダウン：ビープ音
+  countdown(){ this.play(ctx=>{
+    const o=ctx.createOscillator(), g=ctx.createGain();
+    o.connect(g); g.connect(ctx.destination);
+    o.type='sine'; o.frequency.value=880;
+    g.gain.setValueAtTime(0.2,ctx.currentTime);
+    g.gain.linearRampToValueAtTime(0,ctx.currentTime+0.1);
+    o.start(); o.stop(ctx.currentTime+0.1);
+  });},
+
+  // 勝利：明るいファンファーレ
+  win(){ this.play(ctx=>{
+    [[523,0],[659,0.15],[784,0.3],[1047,0.45]].forEach(([freq,t])=>{
+      const o=ctx.createOscillator(), g=ctx.createGain();
+      o.connect(g); g.connect(ctx.destination);
+      o.type='sine'; o.frequency.value=freq;
+      g.gain.setValueAtTime(0,ctx.currentTime+t);
+      g.gain.linearRampToValueAtTime(0.25,ctx.currentTime+t+0.05);
+      g.gain.linearRampToValueAtTime(0,ctx.currentTime+t+0.25);
+      o.start(ctx.currentTime+t); o.stop(ctx.currentTime+t+0.3);
+    });
+  });},
+
+  // 敗北：重い下降音
+  lose(){ this.play(ctx=>{
+    [[400,0],[300,0.2],[200,0.4],[150,0.6]].forEach(([freq,t])=>{
+      const o=ctx.createOscillator(), g=ctx.createGain();
+      o.connect(g); g.connect(ctx.destination);
+      o.type='sawtooth'; o.frequency.value=freq;
+      g.gain.setValueAtTime(0.15,ctx.currentTime+t);
+      g.gain.linearRampToValueAtTime(0,ctx.currentTime+t+0.18);
+      o.start(ctx.currentTime+t); o.stop(ctx.currentTime+t+0.2);
+    });
+  });},
+
+  // ミュート切り替え
+  toggleMute(){
+    this._muted=!this._muted;
+    return this._muted;
+  }
+};
 const SOLO_CFG={easy:{skipMax:Infinity,timeBonus:false,pts:80},normal:{skipMax:3,timeBonus:false,pts:120},hard:{skipMax:1,timeBonus:true,pts:160},oni:{skipMax:0,timeBonus:true,pts:200}};
 const SOLO_TIME=40;
 const S={pendingDiff:'normal'};
@@ -882,13 +990,13 @@ const CPU_CFG={
 
 function startSolo(){clearInterval(S.iv);_queue=[];S.diff=S.pendingDiff||'normal';S.name=(document.getElementById('solo-name').value.trim()||'プレイヤー').slice(0,10);S.cfg=SOLO_CFG[S.diff];S.score=0;S.correct=0;S.answered=0;S.combo=0;S.maxCombo=0;S.skips=S.cfg.skipMax;S.wrongs=[];S.timeLeft=SOLO_TIME;S.qAnswered=false;showS('solo-game');updateSoloSkipUI();soloLoadQ();soloStartTimer();}
 function soloStartTimer(){clearInterval(S.iv);S.iv=setInterval(()=>{S.timeLeft=Math.max(0,S.timeLeft-0.1);soloUpdateTimer();if(S.timeLeft<=0){clearInterval(S.iv);soloFinish();}},100);}
-function soloUpdateTimer(){const t=S.timeLeft,el=document.getElementById('sg-timer');el.textContent=Math.ceil(t);el.className='stat-value';if(t<=5)el.classList.add('timer-danger');else if(t<=10)el.classList.add('timer-warn');const pct=t/SOLO_TIME*100;const bar=document.getElementById('sg-prog');bar.style.width=pct+'%';bar.className='progress-fill'+(t<=5?' prog-danger':t<=10?' prog-warn':'');}
+function soloUpdateTimer(){const t=S.timeLeft,el=document.getElementById('sg-timer');const prev=S._prevTime||999;el.textContent=Math.ceil(t);el.className='stat-value';if(t<=5)el.classList.add('timer-danger');else if(t<=10)el.classList.add('timer-warn');if(t<=10&&t>0&&Math.ceil(t)!==Math.ceil(prev))SFX.countdown();S._prevTime=t;const pct=t/SOLO_TIME*100;const bar=document.getElementById('sg-prog');bar.style.width=pct+'%';bar.className='progress-fill'+(t<=5?' prog-danger':t<=10?' prog-warn':'');}
 function updateSoloSkipUI(){const btn=document.getElementById('sg-skip-btn');const sl=S.skips;if(S.cfg.skipMax===0){btn.style.display='none';return;}btn.style.display='';if(sl===Infinity){btn.textContent='スキップ';btn.disabled=false;}else if(sl>0){btn.textContent=`スキップ（残${sl}）`;btn.disabled=false;}else{btn.textContent='スキップ不可';btn.disabled=true;}}
 function soloLoadQ(){S.qAnswered=false;const q=nextQ(S.diff);S.currentQ=q;document.getElementById('sg-name').textContent=q.name;document.getElementById('sg-bonus').textContent='';const box=document.getElementById('sg-choices');box.innerHTML='';makeChoices(q,S.diff).forEach(ch=>{const b=document.createElement('button');b.className='choice-btn';b.innerHTML=toSubHTML(ch);b.dataset.ans=ch;b.onclick=()=>soloPick(b,ch,q);box.appendChild(b);});}
-function soloPick(btn,chosen,q){if(S.qAnswered)return;S.qAnswered=true;S.answered++;const ok=chosen===q.ans;document.querySelectorAll('#sg-choices .choice-btn').forEach(b=>{b.disabled=true;if(b.dataset.ans===q.ans)b.classList.add(ok?'correct':'reveal');});if(ok){btn.classList.add('correct');S.correct++;S.combo++;if(S.combo>S.maxCombo)S.maxCombo=S.combo;S.score+=S.cfg.pts+Math.min(S.combo-1,8)*10;if(S.cfg.timeBonus&&S.combo>=5){const t=S.timeLeft;const bonus=t>=30?2.0:t>=15?1.5:1.0;S.timeLeft=Math.min(SOLO_TIME,S.timeLeft+bonus);showPop('+'+bonus.toFixed(1)+'s');document.getElementById('sg-bonus').textContent=`🔥 コンボ${S.combo}連！ +${bonus.toFixed(1)}秒`;}}else{btn.classList.add('wrong');S.combo=0;S.wrongs.push({q,chosen});}document.getElementById('sg-score').textContent=S.score;document.getElementById('sg-cor').textContent=S.correct;document.getElementById('sg-combo').textContent=S.combo;setTimeout(()=>soloLoadQ(),700);}
+function soloPick(btn,chosen,q){if(S.qAnswered)return;S.qAnswered=true;S.answered++;const ok=chosen===q.ans;document.querySelectorAll('#sg-choices .choice-btn').forEach(b=>{b.disabled=true;if(b.dataset.ans===q.ans)b.classList.add(ok?'correct':'reveal');});if(ok){btn.classList.add('correct');S.correct++;S.combo++;if(S.combo>S.maxCombo)S.maxCombo=S.combo;S.score+=S.cfg.pts+Math.min(S.combo-1,8)*10;SFX.correct();if(S.cfg.timeBonus&&S.combo>=5){const t=S.timeLeft;const bonus=t>=30?2.0:t>=15?1.5:1.0;S.timeLeft=Math.min(SOLO_TIME,S.timeLeft+bonus);showPop('+'+bonus.toFixed(1)+'s');document.getElementById('sg-bonus').textContent=`🔥 コンボ${S.combo}連！ +${bonus.toFixed(1)}秒`;}}else{btn.classList.add('wrong');S.combo=0;SFX.wrong();S.wrongs.push({q,chosen});}document.getElementById('sg-score').textContent=S.score;document.getElementById('sg-cor').textContent=S.correct;document.getElementById('sg-combo').textContent=S.combo;setTimeout(()=>soloLoadQ(),700);}
 function soloSkip(){if(S.qAnswered)return;if(S.cfg.skipMax!==Infinity&&S.skips<=0)return;if(S.cfg.skipMax!==Infinity)S.skips--;S.qAnswered=true;updateSoloSkipUI();document.querySelectorAll('#sg-choices .choice-btn').forEach(b=>b.disabled=true);document.getElementById('sg-bonus').textContent='スキップ';setTimeout(()=>soloLoadQ(),400);}
 function soloEnd(){clearInterval(S.iv);soloFinish();}
-function soloFinish(){clearInterval(S.iv);const rate=S.answered>0?Math.round(S.correct/S.answered*100):0;let medal='🥉',title='もう少し！',sub='';if(S.correct>=15&&rate>=85){medal='🏆';title='完璧！';sub='化学式マスター！';}else if(rate>=75){medal='🥇';title='すばらしい！';}else if(rate>=55){medal='🥈';title='まあまあ！';}document.getElementById('sr-medal').textContent=medal;document.getElementById('sr-title').textContent=title;document.getElementById('sr-sub').textContent=sub;document.getElementById('sr-score').textContent=S.score.toLocaleString();document.getElementById('sr-cor').textContent=S.correct+'問';document.getElementById('sr-rate').textContent=S.answered>0?rate+'%':'-%';document.getElementById('sr-mc').textContent=S.maxCombo;const wl=document.getElementById('sr-wrongs');if(S.wrongs.length>0){let h=`<div class="wrong-list"><div class="wrong-list-title">間違えた問題（${S.wrongs.length}問）</div>`;S.wrongs.slice(0,8).forEach(w=>{h+=`<div class="wrong-row"><span class="wrong-name">${w.q.name}</span><span class="wrong-given">${toSubHTML(w.chosen)}</span><span class="wrong-arrow">→</span><span class="wrong-ans">${toSubHTML(w.q.ans)}</span></div>`;});if(S.wrongs.length>8)h+=`<div style="font-size:12px;color:var(--text3);margin-top:4px;">他 ${S.wrongs.length-8} 問</div>`;h+='</div>';wl.innerHTML=h;}else{wl.innerHTML='';}showS('solo-result');}
+function soloFinish(){clearInterval(S.iv);const rate=S.answered>0?Math.round(S.correct/S.answered*100):0;let medal='🥉',title='もう少し！',sub='';if(S.correct>=15&&rate>=85){medal='🏆';title='完璧！';sub='化学式マスター！';SFX.win();}else if(rate>=75){medal='🥇';title='すばらしい！';SFX.win();}else if(rate>=55){medal='🥈';title='まあまあ！';}document.getElementById('sr-medal').textContent=medal;document.getElementById('sr-title').textContent=title;document.getElementById('sr-sub').textContent=sub;document.getElementById('sr-score').textContent=S.score.toLocaleString();document.getElementById('sr-cor').textContent=S.correct+'問';document.getElementById('sr-rate').textContent=S.answered>0?rate+'%':'-%';document.getElementById('sr-mc').textContent=S.maxCombo;const wl=document.getElementById('sr-wrongs');if(S.wrongs.length>0){let h=`<div class="wrong-list"><div class="wrong-list-title">間違えた問題（${S.wrongs.length}問）</div>`;S.wrongs.slice(0,8).forEach(w=>{h+=`<div class="wrong-row"><span class="wrong-name">${w.q.name}</span><span class="wrong-given">${toSubHTML(w.chosen)}</span><span class="wrong-arrow">→</span><span class="wrong-ans">${toSubHTML(w.q.ans)}</span></div>`;});if(S.wrongs.length>8)h+=`<div style="font-size:12px;color:var(--text3);margin-top:4px;">他 ${S.wrongs.length-8} 問</div>`;h+='</div>';wl.innerHTML=h;}else{wl.innerHTML='';}showS('solo-result');}
 
 function fb(){return window._fb;}
 function roomRef(id){return fb().ref(fb().db,'rooms/'+id);}
@@ -1048,10 +1156,11 @@ function startLocalCountdown(startTime){
   },200);
 }
 
-function tickMultiTimer(){const elapsed=(Date.now()-M.gameStart)/1000;const left=Math.max(0,M.timeLimit-elapsed);const el=document.getElementById('mg-timer');el.textContent=Math.ceil(left);el.className='stat-value';if(left<=10)el.classList.add('timer-danger');else if(left<=20)el.classList.add('timer-warn');const pct=left/M.timeLimit*100;const bar=document.getElementById('mg-prog');bar.style.width=pct+'%';bar.className='progress-fill'+(left<=10?' prog-danger':left<=20?' prog-warn':'');if(left<=0){clearInterval(M.gameIv);timeUpMulti();}}
+function tickMultiTimer(){const elapsed=(Date.now()-M.gameStart)/1000;const left=Math.max(0,M.timeLimit-elapsed);const el=document.getElementById('mg-timer');const prevLeft=M._prevLeft||999;el.textContent=Math.ceil(left);el.className='stat-value';if(left<=10)el.classList.add('timer-danger');else if(left<=20)el.classList.add('timer-warn');// 10s以下で毎秒ビープ
+if(left<=10&&left>0&&Math.ceil(left)!==Math.ceil(prevLeft))SFX.countdown();M._prevLeft=left;const pct=left/M.timeLimit*100;const bar=document.getElementById('mg-prog');bar.style.width=pct+'%';bar.className='progress-fill'+(left<=10?' prog-danger':left<=20?' prog-warn':'');if(left<=0){clearInterval(M.gameIv);timeUpMulti();}}
 function timeUpMulti(){if(M.ended)return;M.ended=true;endMultiGame(M.myHP>M.oppHP?'win':M.myHP<M.oppHP?'lose':'draw','時間切れ');}
 function multiLoadQ(){M.qAnswered=false;const q=nextQ(M.diff);M.currentQ=q;document.getElementById('mg-name').textContent=q.name;document.getElementById('mg-bonus').textContent='';const box=document.getElementById('mg-choices');box.innerHTML='';makeChoices(q,M.diff).forEach(ch=>{const b=document.createElement('button');b.className='choice-btn';b.innerHTML=toSubHTML(ch);b.dataset.ans=ch;b.onclick=()=>multiPick(b,ch,q);box.appendChild(b);});}
-function multiPick(btn,chosen,q){if(M.qAnswered||M.ended)return;M.qAnswered=true;M.myAnswered++;const ok=chosen===q.ans;document.querySelectorAll('#mg-choices .choice-btn').forEach(b=>{b.disabled=true;if(b.dataset.ans===q.ans)b.classList.add(ok?'correct':'reveal');});if(ok){btn.classList.add('correct');M.myCorrect++;M.myCombo++;if(M.myCombo>M.myMaxCombo)M.myMaxCombo=M.myCombo;const dmg=M.myCombo>=11?5:M.myCombo>=5?3:M.myCombo>=3?2:0;if(dmg>0)addOutDmg(dmg);}else{btn.classList.add('wrong');M.myCombo=0;M.myMiss=(M.myMiss||0)+1;takeSelfDmg(3);}document.getElementById('mg-cor').textContent=M.myCorrect;document.getElementById('mg-combo').textContent=M.myCombo;setTimeout(()=>multiLoadQ(),700);}
+function multiPick(btn,chosen,q){if(M.qAnswered||M.ended)return;M.qAnswered=true;M.myAnswered++;const ok=chosen===q.ans;document.querySelectorAll('#mg-choices .choice-btn').forEach(b=>{b.disabled=true;if(b.dataset.ans===q.ans)b.classList.add(ok?'correct':'reveal');});if(ok){btn.classList.add('correct');M.myCorrect++;M.myCombo++;if(M.myCombo>M.myMaxCombo)M.myMaxCombo=M.myCombo;SFX.correct();const dmg=M.myCombo>=11?5:M.myCombo>=5?3:M.myCombo>=3?2:0;if(dmg>0)addOutDmg(dmg);}else{btn.classList.add('wrong');M.myCombo=0;M.myMiss=(M.myMiss||0)+1;SFX.wrong();takeSelfDmg(3);}document.getElementById('mg-cor').textContent=M.myCorrect;document.getElementById('mg-combo').textContent=M.myCombo;setTimeout(()=>multiLoadQ(),700);}
 function multiSkip(){if(M.qAnswered||M.ended)return;if(MULTI_SKIP[M.diff]!==Infinity&&M.skipsLeft<=0)return;if(MULTI_SKIP[M.diff]!==Infinity)M.skipsLeft--;M.qAnswered=true;updateMultiSkipUI();document.querySelectorAll('#mg-choices .choice-btn').forEach(b=>b.disabled=true);document.getElementById('mg-bonus').textContent='スキップ';setTimeout(()=>multiLoadQ(),400);}
 async function multiEnd(){
   if(M.ended)return;
@@ -1147,15 +1256,15 @@ async function flushDmg(){
     if(net<0){
       // 親有利 → 子がダメージ
       if(M.role==='host'){
-        // 自分が親 → 相手HPを削る（エフェクトは上で済み）
         M.oppHP=Math.max(0,M.oppHP+net);
+        SFX.dmgOut();
         showPop('⚔ '+(-net)+' 相手HP');
         updateMultiHPUI();
         await fb().update(roomRef(M.roomId),{guestHP:M.oppHP});
         if(!M.ended&&M.oppHP<=0){M.ended=true;endMultiGame('win');}
       } else {
-        // 自分が子 → 自分がダメージ（手前フィールドをフラッシュ）
         M.myHP=Math.max(0,M.myHP+net);
+        SFX.dmgIn();
         showPop((-net)+' ダメージ！');
         updateMultiHPUI();
         flashField('me');
@@ -1165,8 +1274,8 @@ async function flushDmg(){
     } else {
       // 子有利 → 親がダメージ
       if(M.role==='host'){
-        // 自分が親 → 自分がダメージ（手前フィールドをフラッシュ）
         M.myHP=Math.max(0,M.myHP-net);
+        SFX.dmgIn();
         showPop(net+' ダメージ！');
         updateMultiHPUI();
         flashField('me');
@@ -1175,6 +1284,7 @@ async function flushDmg(){
       } else {
         // 自分が子 → 相手HPを削る（エフェクトは上で済み）
         M.oppHP=Math.max(0,M.oppHP-net);
+        SFX.dmgOut();
         showPop('⚔ '+net+' 相手HP');
         updateMultiHPUI();
         await fb().update(roomRef(M.roomId),{hostHP:M.oppHP});
@@ -1277,7 +1387,7 @@ function updateMultiHPUI(){
   }
 }
 function updateMultiSkipUI(){const btn=document.getElementById('mg-skip-btn');const sl=M.skipsLeft;if(MULTI_SKIP[M.diff]===0){btn.style.display='none';return;}btn.style.display='';if(sl===Infinity){btn.textContent='スキップ';btn.disabled=false;}else if(sl>0){btn.textContent=`スキップ（残${sl}）`;btn.disabled=false;}else{btn.textContent='スキップ不可';btn.disabled=true;}}
-function endMultiGame(result,reason=''){clearInterval(M.gameIv);clearInterval(M.cdIv);M.cdIv=null;clearTimeout(M.cpuIv);M.cpuIv=null;if(M.gameUnsub)M.gameUnsub();clearTimeout(M.dmgTimer);M.dmgTimer=null;const rate=M.myAnswered>0?Math.round(M.myCorrect/M.myAnswered*100):0;let medal,title;if(result==='win'){medal='🏆';title='勝利！';}else if(result==='lose'){medal='💀';title='敗北…';}else{medal='🤝';title='引き分け！';}document.getElementById('mr-medal').textContent=medal;document.getElementById('mr-title').textContent=title;document.getElementById('mr-sub').textContent=reason;document.getElementById('mr-cor').textContent=M.myCorrect+'問';document.getElementById('mr-miss').textContent=(M.myMiss||0)+'回';document.getElementById('mr-rate').textContent=rate+'%';document.getElementById('mr-mc').textContent=M.myMaxCombo;showS('multi-result');}
+function endMultiGame(result,reason=''){clearInterval(M.gameIv);clearInterval(M.cdIv);M.cdIv=null;clearTimeout(M.cpuIv);M.cpuIv=null;if(M.gameUnsub)M.gameUnsub();clearTimeout(M.dmgTimer);M.dmgTimer=null;if(result==='win')SFX.win();else if(result==='lose')SFX.lose();const rate=M.myAnswered>0?Math.round(M.myCorrect/M.myAnswered*100):0;let medal,title;if(result==='win'){medal='🏆';title='勝利！';}else if(result==='lose'){medal='💀';title='敗北…';}else{medal='🤝';title='引き分け！';}document.getElementById('mr-medal').textContent=medal;document.getElementById('mr-title').textContent=title;document.getElementById('mr-sub').textContent=reason;document.getElementById('mr-cor').textContent=M.myCorrect+'問';document.getElementById('mr-miss').textContent=(M.myMiss||0)+'回';document.getElementById('mr-rate').textContent=rate+'%';document.getElementById('mr-mc').textContent=M.myMaxCombo;showS('multi-result');}
 
 // ── CPU対戦 ──
 async function startCpuBattle(){
