@@ -184,8 +184,8 @@ body.bg-default #app { background: transparent; }
 @keyframes explode { 0%{width:10px;height:10px;opacity:1} 60%{width:80px;height:80px;opacity:0.9} 100%{width:120px;height:120px;opacity:0} }
 @keyframes hpFlash { 0%,100%{opacity:1} 30%,70%{opacity:0.15} 50%{opacity:0.5} }
 .hp-flash { animation:hpFlash 0.45s ease; }
-@keyframes hpDanger { 0%,100%{opacity:1} 50%{opacity:0.3} }
-.hp-danger-pulse { animation:hpDanger 0.8s ease infinite; }
+@keyframes hpDanger { 0%,100%{opacity:1} 50%{opacity:0.25} }
+.hp-danger-pulse { animation:hpDanger 0.8s ease infinite !important; }
 @keyframes hpShake { 0%,100%{transform:translateX(0)} 20%{transform:translateX(-6px)} 40%{transform:translateX(6px)} 60%{transform:translateX(-4px)} 80%{transform:translateX(4px)} }
 .hp-shake { animation:hpShake 0.4s ease; }
 
