@@ -361,7 +361,7 @@ body.bg-default #app { background: transparent; }
     <div id="sr-wrongs"></div>
     <div class="btn-row">
       <button class="btn btn--primary" onclick="goSoloReady()">もう一度</button>
-      <button class="btn" onclick="showS('solo-home')">メニュー</button>
+      <button class="btn" onclick="showS('mode')">トップへ</button>
     </div>
     <button class="btn btn--full" style="margin-top:8px;border-color:var(--amber);color:var(--amber);" onclick="showRegisterModal()">🏆 ランキングに登録する</button>
   </div>
@@ -714,7 +714,16 @@ ION.oni=ION.hard;
 function toSubHTML(f){return f.replace(/([0-9]+)/g,'<sub>$1</sub>');}
 function shuffle(a){const r=[...a];for(let i=r.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[r[i],r[j]]=[r[j],r[i]];}return r;}
 function gcd(a,b){return b===0?a:gcd(b,a%b);}
-function showS(n){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById('screen-'+n).classList.add('active');}
+function showS(n){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById('screen-'+n).classList.add('active');
+  // result画面以外に移動したらBGMを再開
+  if(!n.includes('result')){
+    if(!BGM._audio||BGM._audio.paused){
+      BGM.play(document.body.className||'bg-default');
+    }
+  }
+}
 function showPop(text){const el=document.createElement('div');el.className='bonus-pop';el.textContent=text;document.body.appendChild(el);setTimeout(()=>el.remove(),950);}
 function goMode(m){showS(m==='solo'?'solo-home':'multi-top');}
 function toggleRule(id){const el=document.getElementById(id);el.classList.toggle('open');}
