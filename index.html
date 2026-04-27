@@ -717,8 +717,8 @@ function gcd(a,b){return b===0?a:gcd(b,a%b);}
 function showS(n){
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   document.getElementById('screen-'+n).classList.add('active');
-  // result画面以外に移動したらBGMを再開
-  if(!n.includes('result')){
+  // result画面・ready画面以外に移動したらBGMを再開
+  if(!n.includes('result')&&!n.includes('ready')){
     if(!BGM._audio||BGM._audio.paused){
       BGM.play(document.body.className||'bg-default');
     }
