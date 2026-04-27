@@ -631,7 +631,7 @@ body.bg-default #app { background: transparent; }
 </div>
 
 <div class="footer">
-  © 2026 化学式マスター｜<a href="https://x.com/nachu_science" target="_blank" style="color:var(--accent2);text-decoration:none;">@nachu_science</a><br>
+  © 2026 化学式マスター｜nachu19・N<br>
   個人・学習目的での利用はご自由にどうぞ。再配布・商用利用はご遠慮ください。
 </div>
 
@@ -731,13 +731,13 @@ function toggleSfx(){
 }
 
 function goSoloReady(){
-  // 設定を保存してReady画面へ
   S.pendingName=(document.getElementById('solo-name').value.trim()||'プレイヤー').slice(0,10);
   document.getElementById('solo-ready-title').textContent='準備はいい？';
   document.getElementById('solo-ready-msg').textContent='ボタンを押したらカウントダウン開始！';
   document.getElementById('solo-ready-btn').style.display='';
   document.getElementById('solo-ready-btn').disabled=false;
   document.getElementById('solo-ready-countdown').style.display='none';
+  BGM.stop(); // Ready画面でBGM停止
   showS('solo-ready');
 }
 
@@ -871,18 +871,23 @@ const BGM = {
   },
   play(season){
     const file = this._map[season];
-    if(!file) return;
+    if(!file){ this.stop(); return; }
     if(this._current === file && this._audio && !this._audio.paused) return;
     this.stop();
     this._current = file;
-    this._audio = new Audio(file);
-    this._audio.loop = true;
-    this._audio.volume = 0.4;
-    this._audio.muted = this._muted;
-    this._audio.play().catch(()=>{});
+    const a = new Audio(file);
+    a.loop = true;
+    a.volume = 0.4;
+    a.muted = this._muted;
+    this._audio = a;
+    a.play().catch(()=>{
+      // 自動再生失敗時は次のクリックで再試行
+      const retry=()=>{ if(this._audio===a){ a.play().catch(()=>{}); } };
+      document.addEventListener('click', retry, {once:true});
+    });
   },
   stop(){
-    if(this._audio){ this._audio.pause(); this._audio = null; }
+    if(this._audio){ this._audio.pause(); this._audio.src=''; this._audio=null; }
     this._current = null;
   },
   setMute(muted){
@@ -903,12 +908,6 @@ function setBg(season){
 (function(){
   try{const s=localStorage.getItem('bgSeason');if(s)setBg(s);else setBg('default');}
   catch(e){setBg('default');}
-  // 最初のユーザー操作でBGM開始（自動再生制限対策）
-  document.addEventListener('click',()=>{
-    if(BGM._current&&(!BGM._audio||BGM._audio.paused)){
-      BGM.play(BGM._current);
-    }
-  },{once:true});
 })();
 
 let _queue=[];
@@ -1042,7 +1041,10 @@ const CPU_CFG={
   oni:   {acc:0.95,interval:2750},
 };
 
-function startSolo(){clearInterval(S.iv);_queue=[];S.diff=S.pendingDiff||'normal';S.name=(document.getElementById('solo-name').value.trim()||'プレイヤー').slice(0,10);S.cfg=SOLO_CFG[S.diff];S.score=0;S.correct=0;S.answered=0;S.combo=0;S.maxCombo=0;S.skips=S.cfg.skipMax;S.wrongs=[];S.timeLeft=SOLO_TIME;S.qAnswered=false;showS('solo-game');updateSoloSkipUI();soloLoadQ();soloStartTimer();}
+function startSolo(){clearInterval(S.iv);_queue=[];S.diff=S.pendingDiff||'normal';S.name=(document.getElementById('solo-name').value.trim()||'プレイヤー').slice(0,10);S.cfg=SOLO_CFG[S.diff];S.score=0;S.correct=0;S.answered=0;S.combo=0;S.maxCombo=0;S.skips=S.cfg.skipMax;S.wrongs=[];S.timeLeft=SOLO_TIME;S.qAnswered=false;
+// ゲーム開始時にBGMを冒頭から再生
+BGM.stop();BGM.play(document.body.className||'bg-default');
+showS('solo-game');updateSoloSkipUI();soloLoadQ();soloStartTimer();}
 function soloStartTimer(){clearInterval(S.iv);S.iv=setInterval(()=>{S.timeLeft=Math.max(0,S.timeLeft-0.1);soloUpdateTimer();if(S.timeLeft<=0){clearInterval(S.iv);soloFinish();}},100);}
 function soloUpdateTimer(){const t=S.timeLeft,el=document.getElementById('sg-timer');const prev=S._prevTime||999;el.textContent=Math.ceil(t);el.className='stat-value';if(t<=5)el.classList.add('timer-danger');else if(t<=10)el.classList.add('timer-warn');if(t<=10&&t>0&&Math.ceil(t)!==Math.ceil(prev))SFX.countdown();S._prevTime=t;const pct=t/SOLO_TIME*100;const bar=document.getElementById('sg-prog');bar.style.width=pct+'%';bar.className='progress-fill'+(t<=5?' prog-danger':t<=10?' prog-warn':'');}
 function updateSoloSkipUI(){const btn=document.getElementById('sg-skip-btn');const sl=S.skips;if(S.cfg.skipMax===0){btn.style.display='none';return;}btn.style.display='';if(sl===Infinity){btn.textContent='スキップ';btn.disabled=false;}else if(sl>0){btn.textContent=`スキップ（残${sl}）`;btn.disabled=false;}else{btn.textContent='スキップ不可';btn.disabled=true;}}
@@ -1050,7 +1052,7 @@ function soloLoadQ(){S.qAnswered=false;const q=nextQ(S.diff);S.currentQ=q;docume
 function soloPick(btn,chosen,q){if(S.qAnswered)return;S.qAnswered=true;S.answered++;const ok=chosen===q.ans;document.querySelectorAll('#sg-choices .choice-btn').forEach(b=>{b.disabled=true;if(b.dataset.ans===q.ans)b.classList.add(ok?'correct':'reveal');});if(ok){btn.classList.add('correct');S.correct++;S.combo++;if(S.combo>S.maxCombo)S.maxCombo=S.combo;S.score+=S.cfg.pts+Math.min(S.combo-1,8)*10;SFX.correct();if(S.cfg.timeBonus&&S.combo>=5){const t=S.timeLeft;const bonus=t>=30?2.0:t>=15?1.5:1.0;S.timeLeft=Math.min(SOLO_TIME,S.timeLeft+bonus);showPop('+'+bonus.toFixed(1)+'s');document.getElementById('sg-bonus').textContent=`🔥 コンボ${S.combo}連！ +${bonus.toFixed(1)}秒`;}}else{btn.classList.add('wrong');S.combo=0;SFX.wrong();S.wrongs.push({q,chosen});}document.getElementById('sg-score').textContent=S.score;document.getElementById('sg-cor').textContent=S.correct;document.getElementById('sg-combo').textContent=S.combo;setTimeout(()=>soloLoadQ(),700);}
 function soloSkip(){if(S.qAnswered)return;if(S.cfg.skipMax!==Infinity&&S.skips<=0)return;if(S.cfg.skipMax!==Infinity)S.skips--;S.qAnswered=true;updateSoloSkipUI();document.querySelectorAll('#sg-choices .choice-btn').forEach(b=>b.disabled=true);document.getElementById('sg-bonus').textContent='スキップ';setTimeout(()=>soloLoadQ(),400);}
 function soloEnd(){clearInterval(S.iv);soloFinish();}
-function soloFinish(){clearInterval(S.iv);const rate=S.answered>0?Math.round(S.correct/S.answered*100):0;let medal='🥉',title='もう少し！',sub='';if(S.correct>=15&&rate>=85){medal='🏆';title='完璧！';sub='化学式マスター！';SFX.win();}else if(rate>=75){medal='🥇';title='すばらしい！';SFX.win();}else if(rate>=55){medal='🥈';title='まあまあ！';}document.getElementById('sr-medal').textContent=medal;document.getElementById('sr-title').textContent=title;document.getElementById('sr-sub').textContent=sub;document.getElementById('sr-score').textContent=S.score.toLocaleString();document.getElementById('sr-cor').textContent=S.correct+'問';document.getElementById('sr-rate').textContent=S.answered>0?rate+'%':'-%';document.getElementById('sr-mc').textContent=S.maxCombo;const wl=document.getElementById('sr-wrongs');if(S.wrongs.length>0){let h=`<div class="wrong-list"><div class="wrong-list-title">間違えた問題（${S.wrongs.length}問）</div>`;S.wrongs.slice(0,8).forEach(w=>{h+=`<div class="wrong-row"><span class="wrong-name">${w.q.name}</span><span class="wrong-given">${toSubHTML(w.chosen)}</span><span class="wrong-arrow">→</span><span class="wrong-ans">${toSubHTML(w.q.ans)}</span></div>`;});if(S.wrongs.length>8)h+=`<div style="font-size:12px;color:var(--text3);margin-top:4px;">他 ${S.wrongs.length-8} 問</div>`;h+='</div>';wl.innerHTML=h;}else{wl.innerHTML='';}showS('solo-result');}
+function soloFinish(){clearInterval(S.iv);const rate=S.answered>0?Math.round(S.correct/S.answered*100):0;let medal='🥉',title='もう少し！',sub='';if(S.correct>=15&&rate>=85){medal='🏆';title='完璧！';sub='化学式マスター！';SFX.win();}else if(rate>=75){medal='🥇';title='すばらしい！';SFX.win();}else if(rate>=55){medal='🥈';title='まあまあ！';}document.getElementById('sr-medal').textContent=medal;document.getElementById('sr-title').textContent=title;document.getElementById('sr-sub').textContent=sub;document.getElementById('sr-score').textContent=S.score.toLocaleString();document.getElementById('sr-cor').textContent=S.correct+'問';document.getElementById('sr-rate').textContent=S.answered>0?rate+'%':'-%';document.getElementById('sr-mc').textContent=S.maxCombo;const wl=document.getElementById('sr-wrongs');if(S.wrongs.length>0){let h=`<div class="wrong-list"><div class="wrong-list-title">間違えた問題（${S.wrongs.length}問）</div>`;S.wrongs.slice(0,8).forEach(w=>{h+=`<div class="wrong-row"><span class="wrong-name">${w.q.name}</span><span class="wrong-given">${toSubHTML(w.chosen)}</span><span class="wrong-arrow">→</span><span class="wrong-ans">${toSubHTML(w.q.ans)}</span></div>`;});if(S.wrongs.length>8)h+=`<div style="font-size:12px;color:var(--text3);margin-top:4px;">他 ${S.wrongs.length-8} 問</div>`;h+='</div>';wl.innerHTML=h;}else{wl.innerHTML='';}showS('solo-result');BGM.stop();BGM.play(document.body.className||'bg-default');}
 
 function fb(){return window._fb;}
 function roomRef(id){return fb().ref(fb().db,'rooms/'+id);}
@@ -1090,6 +1092,7 @@ function showReadyScreen(roomData){
   if(M.waitUnsub){M.waitUnsub();M.waitUnsub=null;}
   if(M.readyUnsub){M.readyUnsub();M.readyUnsub=null;}
   M.countingDown=false;
+  BGM.stop(); // Ready画面でBGM停止
   const oppName=M.role==='host'?(roomData.guest||'相手'):roomData.host;
   M.oppName=oppName;
   document.getElementById('ready-my-name').textContent=M.myName;
@@ -1152,6 +1155,8 @@ function startMultiGame(roomData){
   document.getElementById('mg-my-name').textContent=M.myName;
   document.getElementById('mg-opp-name').textContent=oppName;
   updateDmgUI(0);
+  // ゲーム開始時にBGMを冒頭から再生
+  BGM.stop(); BGM.play(document.body.className||'bg-default');
   // role固定色を設定（host=青, guest=赤）
   const myColor  = M.role==='host' ? 'host' : 'guest';
   const oppColor = M.role==='host' ? 'guest' : 'host';
@@ -1445,7 +1450,7 @@ function updateMultiHPUI(){
   }
 }
 function updateMultiSkipUI(){const btn=document.getElementById('mg-skip-btn');const sl=M.skipsLeft;if(MULTI_SKIP[M.diff]===0){btn.style.display='none';return;}btn.style.display='';if(sl===Infinity){btn.textContent='スキップ';btn.disabled=false;}else if(sl>0){btn.textContent=`スキップ（残${sl}）`;btn.disabled=false;}else{btn.textContent='スキップ不可';btn.disabled=true;}}
-function endMultiGame(result,reason=''){clearInterval(M.gameIv);clearInterval(M.cdIv);M.cdIv=null;clearTimeout(M.cpuIv);M.cpuIv=null;if(M.gameUnsub)M.gameUnsub();clearTimeout(M.dmgTimer);M.dmgTimer=null;if(result==='win')SFX.win();else if(result==='lose')SFX.lose();const rate=M.myAnswered>0?Math.round(M.myCorrect/M.myAnswered*100):0;let medal,title;if(result==='win'){medal='🏆';title='勝利！';}else if(result==='lose'){medal='💀';title='敗北…';}else{medal='🤝';title='引き分け！';}document.getElementById('mr-medal').textContent=medal;document.getElementById('mr-title').textContent=title;document.getElementById('mr-sub').textContent=reason;document.getElementById('mr-cor').textContent=M.myCorrect+'問';document.getElementById('mr-miss').textContent=(M.myMiss||0)+'回';document.getElementById('mr-rate').textContent=rate+'%';document.getElementById('mr-mc').textContent=M.myMaxCombo;showS('multi-result');}
+function endMultiGame(result,reason=''){clearInterval(M.gameIv);clearInterval(M.cdIv);M.cdIv=null;clearTimeout(M.cpuIv);M.cpuIv=null;if(M.gameUnsub)M.gameUnsub();clearTimeout(M.dmgTimer);M.dmgTimer=null;if(result==='win')SFX.win();else if(result==='lose')SFX.lose();const rate=M.myAnswered>0?Math.round(M.myCorrect/M.myAnswered*100):0;let medal,title;if(result==='win'){medal='🏆';title='勝利！';}else if(result==='lose'){medal='💀';title='敗北…';}else{medal='🤝';title='引き分け！';}document.getElementById('mr-medal').textContent=medal;document.getElementById('mr-title').textContent=title;document.getElementById('mr-sub').textContent=reason;document.getElementById('mr-cor').textContent=M.myCorrect+'問';document.getElementById('mr-miss').textContent=(M.myMiss||0)+'回';document.getElementById('mr-rate').textContent=rate+'%';document.getElementById('mr-mc').textContent=M.myMaxCombo;showS('multi-result');BGM.stop();BGM.play(document.body.className||'bg-default');}
 
 // ── CPU対戦 ──
 async function startCpuBattle(){
