@@ -187,6 +187,19 @@ main {
   position: relative;
 }
 
+.field-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.field-divider {
+  width: 1px;
+  align-self: stretch;
+  background: rgba(201, 169, 97, 0.3);
+  margin: 4px 0;
+}
+
 .field-area::before {
   content: "場";
   position: absolute;
@@ -643,6 +656,63 @@ aside h2 {
   background: var(--bg-deep);
 }
 
+.modal-elem-row {
+  display: flex;
+  gap: 4px;
+  margin: 4px 0;
+  flex-wrap: wrap;
+}
+
+.modal-elem {
+  display: inline-block;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 2px;
+  letter-spacing: 0.05em;
+  border: 1px solid;
+}
+
+.modal-elem.filled {
+  /* すでに役のマスに札が入っている：白文字＋背景明るめ */
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+.modal-elem.empty {
+  /* まだ空きマス：グレー */
+  color: var(--ink-soft);
+  background: transparent;
+  border-color: rgba(201, 169, 97, 0.2);
+  border-style: dashed;
+}
+
+.modal-elem.incoming {
+  /* この札が入ろうとしている元素：朱でハイライト */
+  color: var(--bg-card);
+  background: var(--vermilion);
+  border-color: var(--vermilion);
+}
+
+.modal-role.selected .modal-elem.filled {
+  color: var(--bg-card);
+  background: rgba(0, 0, 0, 0.2);
+  border-color: rgba(255, 255, 255, 0.5);
+}
+
+.modal-role.selected .modal-elem.empty {
+  color: rgba(255, 255, 255, 0.6);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.modal-role.selected .modal-elem.incoming {
+  color: var(--vermilion);
+  background: var(--bg-card);
+  border-color: var(--bg-card);
+}
+
 .role-progress {
   font-family: 'JetBrains Mono', monospace;
   font-size: 0.7rem;
@@ -782,24 +852,6 @@ aside h2 {
   height: 70px;
 }
 
-.deck-count {
-  position: absolute;
-  bottom: -16px;
-  left: 50%;
-  transform: translateX(-50%);
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 0.65rem;
-  color: var(--gold);
-  white-space: nowrap;
-}
-
-.drawn-area {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2px;
-}
-
 .drawn-label {
   font-family: 'JetBrains Mono', monospace;
   font-size: 0.6rem;
@@ -816,6 +868,26 @@ aside h2 {
   display: flex;
   align-items: center;
   justify-content: center;
+  position: relative;
+}
+
+.drawn-slot:empty::before {
+  content: "めくり";
+  color: var(--ink-soft);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.55rem;
+  letter-spacing: 0.1em;
+}
+
+.deck-count {
+  position: absolute;
+  bottom: -14px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.6rem;
+  color: var(--gold);
+  white-space: nowrap;
 }
 
 .drawn-slot .card {
@@ -966,16 +1038,14 @@ aside h2 {
         <span>場札 <span id="fieldCount">0</span></span>
         <span>山札 <span id="deckCount">0</span></span>
       </div>
-      <div class="cards" id="fieldCards" style="justify-content: center; min-height: 78px;"></div>
-      <div style="display: flex; justify-content: center; align-items: center; gap: 16px; margin-top: 10px;">
-        <div class="deck-stack" id="deckArea">
+      <div class="field-row">
+        <div class="deck-stack" id="deckArea" title="山札">
           <div class="card card-back"></div>
           <div class="deck-count" id="deckLabel">山札</div>
         </div>
-        <div class="drawn-area">
-          <div class="drawn-label">めくり札</div>
-          <div class="drawn-slot" id="drawnSlot"></div>
-        </div>
+        <div class="drawn-slot" id="drawnSlot" title="めくり札"></div>
+        <div class="field-divider"></div>
+        <div class="cards" id="fieldCards" style="flex: 1; min-height: 70px; align-items: center;"></div>
       </div>
     </section>
 
@@ -1484,6 +1554,10 @@ function openPlaceModal() {
   
   renderPlaceModal();
   showModal('placeModal');
+  
+  // モーダル内のスクロール位置を一番上にリセット
+  const modalEl = document.querySelector('#placeModal .modal');
+  if (modalEl) modalEl.scrollTop = 0;
 }
 
 function renderPlaceModal() {
@@ -1663,10 +1737,30 @@ function createRoleOption(role, player, cardId, disabled) {
     ? `${role.points}〜${role.completePoints}点` 
     : `${role.points}点`;
   
+  // この札の元素 (cardSymbol) を見つける（captures or pendingsから）
+  let cardSymbol = null;
+  const allCards = [...placeModalState.captures, ...placeModalState.pendings];
+  const card = allCards.find(c => c.id === cardId);
+  if (card) cardSymbol = card.symbol;
+  
+  // 役の元素マス表示：すでに埋まってる元素は白、空きはグレー、いま入れる元素はハイライト
+  const slot = player.slots[role.id] || {};
+  const elementsHtml = role.elements.map(e => {
+    const isFilled = !!slot[e];
+    const isThisCard = (e === cardSymbol) && !isFilled;
+    if (isFilled) {
+      return `<span class="modal-elem filled">${e}</span>`;
+    } else if (isThisCard) {
+      return `<span class="modal-elem incoming">${e}</span>`;
+    } else {
+      return `<span class="modal-elem empty">${e}</span>`;
+    }
+  }).join('');
+  
   opt.innerHTML = `
     <div style="flex: 1;">
       <div class="role-name">${role.name}</div>
-      <div class="role-formula">${role.formula}</div>
+      <div class="modal-elem-row">${elementsHtml}</div>
       <div class="role-progress">現在 ${progress.filled}/${progress.total}</div>
     </div>
     <div class="role-points">${points}</div>
