@@ -1,1546 +1,2712 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>化学式マスター</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet" />
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>金属イオンこいこい v2</title>
+<link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 :root {
-  --bg: #0e0f14; --bg2: #161720; --bg3: #1e2030;
-  --border: rgba(255,255,255,0.08); --border2: rgba(255,255,255,0.14);
-  --text: #ffffff; --text2: #b0b3c8; --text3: #6b6f88;
-  --accent: #6c63ff; --accent2: #8b84ff; --accent-bg: rgba(108,99,255,0.12);
-  --red: #ff4d4d; --red-bg: rgba(255,77,77,0.1);
-  --green: #4dff9a; --green-bg: rgba(77,255,154,0.1);
-  --amber: #ffb347; --hp-me: #6c63ff; --hp-opp: #ff4d4d;
-  --radius: 10px; --radius-sm: 6px;
-  --font: 'Noto Sans JP', sans-serif; --mono: 'JetBrains Mono', monospace;
+  --bg-deep: #1a1410;
+  --bg-mid: #2a1f18;
+  --bg-card: #f4ead5;
+  --bg-card-shadow: #d4c5a0;
+  --ink: #1a1410;
+  --ink-soft: #4a3f35;
+  --gold: #c9a961;
+  --gold-bright: #e8c878;
+  --vermilion: #b84a3e;
+  --moss: #5a6b3a;
+  --indigo: #2a3f5f;
+  --typical: #c9a961;
+  --transition: #b84a3e;
+  --plus1: #5a8aa8;
+  --plus3: #7a5a8a;
+  --plus4: #5a6b3a;
 }
-html { font-size: 16px; }
-body { font-family: var(--font); background: var(--bg); color: var(--text); min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 0 0 40px; }
-#app { width: 100%; max-width: 480px; padding: 16px; flex: 1; }
-.footer { width: 100%; max-width: 480px; text-align: center; padding: 12px 16px 24px; font-size: 12px; color: var(--text3); line-height: 1.8; }
-.screen { display: none; }
-.screen.active { display: block; animation: fadeIn 0.2s ease; }
-@keyframes fadeIn { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
-.title-block { text-align: center; padding: 2rem 0 1.5rem; }
-.title-label { font-size: 11px; letter-spacing: .2em; color: var(--text3); margin-bottom: 8px; }
-.title-main { font-size: 32px; font-weight: 700; background: linear-gradient(135deg, var(--accent2), #c084fc); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; margin-bottom: 6px; }
-.title-sub { font-size: 14px; color: var(--text2); }
-.mode-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 8px; }
-.mode-card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px 16px; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 8px; transition: border-color 0.2s, transform 0.15s; color: var(--text); }
-.mode-card:hover { border-color: var(--accent); transform: translateY(-2px); }
-.mode-card--battle { border-color: rgba(255,77,77,0.3); }
-.mode-card--battle:hover { border-color: var(--red); }
-.mode-icon { font-size: 32px; }
-.mode-name { font-size: 17px; font-weight: 700; }
-.mode-desc { font-size: 12px; color: var(--text2); text-align: center; line-height: 1.6; }
-.page-header { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
-.page-header h2 { font-size: 18px; font-weight: 700; }
-.back-btn { background: transparent; border: 1px solid var(--border2); border-radius: var(--radius-sm); padding: 6px 12px; color: var(--text2); font-size: 13px; cursor: pointer; font-family: var(--font); transition: background 0.15s; }
-.back-btn:hover { background: var(--bg3); }
-.card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; margin-bottom: 12px; }
-.card-label { font-size: 12px; color: var(--text2); margin-bottom: 10px; }
-.hint-box { font-size: 12px; color: var(--text3); margin-top: 10px; padding: 8px 10px; background: var(--bg); border-radius: var(--radius-sm); line-height: 1.6; }
-.diff-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-.diff-btn { background: var(--bg3); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px 10px; cursor: pointer; color: var(--text); font-family: var(--font); display: flex; flex-direction: column; gap: 4px; text-align: left; transition: border-color 0.15s; }
-.diff-btn:hover { border-color: var(--accent); }
-.diff-btn.sel { border: 2px solid var(--accent); background: var(--accent-bg); }
-.diff-btn--oni { border-color: rgba(255,77,77,0.3); }
-.diff-btn--oni.sel { border-color: var(--red); background: var(--red-bg); }
-.diff-btn--oni .diff-name { color: var(--red); }
-.diff-name { font-size: 15px; font-weight: 700; }
-.diff-desc { font-size: 11px; color: var(--text2); line-height: 1.5; }
-.time-grid { display: flex; gap: 8px; flex-wrap: wrap; }
-.time-btn { background: var(--bg3); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 8px 16px; font-size: 13px; cursor: pointer; color: var(--text); font-family: var(--font); transition: border-color 0.15s; }
-.time-btn:hover { border-color: var(--accent); }
-.time-btn.sel { border: 2px solid var(--accent); background: var(--accent-bg); font-weight: 700; }
-.text-input { width: 100%; padding: 11px 14px; font-size: 15px; background: var(--bg3); border: 1px solid var(--border2); border-radius: var(--radius-sm); color: var(--text); font-family: var(--font); outline: none; transition: border-color 0.15s; }
-.text-input:focus { border-color: var(--accent); }
-.btn { background: transparent; border: 1px solid var(--border2); border-radius: var(--radius-sm); padding: 10px 20px; font-size: 14px; cursor: pointer; color: var(--text); font-family: var(--font); transition: background 0.15s, transform 0.1s; }
-.btn:hover { background: var(--bg3); }
-.btn:active { transform: scale(0.97); }
-.btn--primary { background: var(--accent); border-color: var(--accent); color: white; font-weight: 700; }
-.btn--primary:hover { background: var(--accent2); border-color: var(--accent2); }
-.btn--full { width: 100%; padding: 13px; }
-.btn--skip { font-size: 13px; padding: 8px 14px; color: var(--text2); }
-.btn--skip:disabled { opacity: 0.3; cursor: default; }
-.btn--end { background: rgba(255,77,77,0.15); border-color: rgba(255,77,77,0.4); color: var(--red); font-size: 13px; margin-left: auto; }
-.btn--end:hover { background: var(--red-bg); }
-.btn-row { display: flex; gap: 8px; margin-top: 12px; }
-.btn-row .btn { flex: 1; text-align: center; padding: 11px; }
-.stats-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; margin-bottom: 8px; }
-.stats-row--4 { grid-template-columns: repeat(4, 1fr); }
-.stat { background: var(--bg2); border-radius: var(--radius-sm); padding: 8px 4px; text-align: center; }
-.stat-label { font-size: 10px; color: var(--text3); margin-bottom: 2px; }
-.stat-value { font-size: 18px; font-weight: 700; font-family: var(--mono); color: var(--text); }
-.stat-value--accent { color: var(--accent2); }
-.stat--timer .stat-value { font-size: 22px; }
-.timer-warn { color: var(--amber) !important; }
-.timer-danger { color: var(--red) !important; animation: pulse 0.5s infinite alternate; }
-@keyframes pulse { from{opacity:1} to{opacity:0.5} }
-.progress-bar { height: 4px; background: var(--bg3); border-radius: 2px; overflow: hidden; margin-bottom: 10px; }
-.progress-fill { height: 100%; background: var(--accent); border-radius: 2px; transition: width 0.3s linear, background 0.3s; width: 100%; }
-.progress-fill.prog-warn { background: var(--amber); }
-.progress-fill.prog-danger { background: var(--red); }
-.question-card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px 16px; text-align: center; margin-bottom: 10px; }
-.question-label { font-size: 12px; color: var(--text2); margin-bottom: 10px; }
-.question-text { font-size: 24px; font-weight: 700; line-height: 1.3; color: var(--text); }
-.bonus-msg { font-size: 12px; color: var(--amber); margin-top: 6px; min-height: 16px; }
-.choices-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px; }
-.choice-btn { background: var(--bg2); border: 1px solid var(--border2); border-radius: var(--radius-sm); padding: 14px 10px; font-size: 17px; font-weight: 700; font-family: var(--mono); cursor: pointer; color: var(--text); text-align: center; transition: border-color 0.1s, background 0.1s, transform 0.1s; }
-.choice-btn:hover:not(:disabled) { border-color: var(--accent); background: var(--accent-bg); transform: scale(1.02); }
-.choice-btn:active:not(:disabled) { transform: scale(0.97); }
-.choice-btn.correct { background: var(--green-bg); border: 2px solid var(--green); color: var(--green); }
-.choice-btn.wrong   { background: var(--red-bg);   border: 2px solid var(--red);   color: var(--red); }
-.choice-btn.reveal  { background: var(--green-bg); border: 2px solid var(--green); color: var(--green); }
-.choice-btn:disabled { cursor: default; }
-.choice-btn sub { font-size: 0.65em; }
-.action-row { display: flex; gap: 8px; align-items: center; }
-.hp-section { margin-bottom: 8px; }
-.hp-row { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
-.hp-label { font-size: 13px; font-weight: 700; min-width: 64px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.hp-row--me .hp-label { color: var(--hp-me); }
-.hp-row--opp .hp-label { color: var(--hp-opp); }
-.hp-bar-bg { flex: 1; height: 12px; background: var(--bg3); border-radius: 6px; overflow: hidden; }
-.hp-bar-fill { height: 100%; border-radius: 6px; transition: width 0.4s ease; }
-.hp-fill--me { background: var(--hp-me); width: 100%; }
-.hp-fill--opp { background: var(--hp-opp); width: 100%; }
-.hp-num { font-size: 13px; font-weight: 700; font-family: var(--mono); min-width: 28px; text-align: right; color: var(--text); }
-.dmg-pending { text-align: center; font-size: 13px; font-weight: 700; min-height: 22px; margin-bottom: 6px; transition: color 0.2s; }
-.dmg-pending.to-opp { color: var(--green); }
-.dmg-pending.to-me  { color: var(--red); }
-.dmg-pending.neutral { color: var(--text3); }
-.dmg-pending.cancel { color: var(--amber); }
-.wait-block { text-align: center; padding: 2rem 0 1.5rem; }
-.wait-title { font-size: 18px; font-weight: 700; margin-bottom: 6px; color: var(--text); }
-.wait-sub { font-size: 13px; color: var(--text2); margin-bottom: 16px; }
-.room-id-display { font-family: var(--mono); font-size: 36px; font-weight: 700; letter-spacing: .2em; color: var(--accent2); padding: 16px; background: var(--bg2); border-radius: var(--radius); border: 1px solid var(--border); margin: 0 auto 12px; display: inline-block; }
-.wait-status { font-size: 13px; color: var(--text2); }
-.dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; }
-.dot--wait { background: var(--amber); animation: pulse 1s infinite alternate; }
-.result-hero { text-align: center; padding: 1.5rem 0 1rem; }
-.result-medal { font-size: 56px; margin-bottom: 8px; }
-.result-title { font-size: 24px; font-weight: 700; color: var(--text); }
-.result-sub { font-size: 14px; color: var(--text2); margin-top: 4px; }
-.result-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 12px; }
-.wrong-list { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px; margin-bottom: 12px; }
-.wrong-list-title { font-size: 13px; color: var(--text2); margin-bottom: 8px; }
-.wrong-row { display: flex; align-items: center; gap: 8px; padding: 5px 0; border-bottom: 1px solid var(--border); font-size: 13px; color: var(--text); }
-.wrong-row:last-child { border-bottom: none; }
-.wrong-name { flex: 1; }
-.wrong-given { color: var(--text3); font-family: var(--mono); font-size: 12px; }
-.wrong-arrow { color: var(--text3); }
-.wrong-ans { font-weight: 700; color: var(--green); font-family: var(--mono); }
-.error-msg { color: var(--red); font-size: 13px; margin-top: 8px; text-align: center; min-height: 20px; }
-.bonus-pop { position: fixed; top: 38%; left: 50%; transform: translate(-50%,-50%); font-size: 22px; font-weight: 700; color: var(--green); pointer-events: none; animation: popUp 0.9s ease forwards; z-index: 999; text-shadow: 0 0 20px rgba(77,255,154,0.5); }
-@keyframes popUp { 0%{opacity:1;transform:translate(-50%,-50%) scale(1)} 100%{opacity:0;transform:translate(-50%,-140%) scale(1.4)} }
-@keyframes countPop { 0%{opacity:0;transform:scale(0.5)} 50%{opacity:1;transform:scale(1.2)} 100%{opacity:1;transform:scale(1)} }
-@media (max-width: 400px) { .stats-row { grid-template-columns: repeat(3, 1fr); } .stat--timer { grid-column: span 2; } .result-stats { grid-template-columns: 1fr 1fr; } }
-/* 背景 */
-body { background-attachment: fixed; background-size: cover; background-position: center; transition: background-image 0.6s ease; }
-body.bg-default { background-image: linear-gradient(rgba(0,0,0,0.35),rgba(0,0,0,0.45)), url('default.png'); background-attachment: fixed; background-size: cover; background-position: center; }
-body.bg-spring  { background-image: linear-gradient(rgba(0,0,0,0.45),rgba(0,0,0,0.55)), url('spr.png'); }
-body.bg-summer  { background-image: linear-gradient(rgba(0,0,0,0.45),rgba(0,0,0,0.55)), url('sum.png'); }
-body.bg-fall    { background-image: linear-gradient(rgba(0,0,0,0.45),rgba(0,0,0,0.55)), url('fall.png'); }
-body.bg-winter  { background-image: linear-gradient(rgba(0,0,0,0.45),rgba(0,0,0,0.55)), url('win.png'); }
-/* 背景選択ボタン */
-.bg-selector { display: flex; justify-content: center; gap: 8px; margin-top: 16px; flex-wrap: wrap; }
-.bg-btn { background: var(--bg2); border: 1px solid var(--border2); border-radius: var(--radius-sm); padding: 6px 12px; font-size: 12px; cursor: pointer; color: var(--text2); font-family: var(--font); transition: border-color 0.15s, color 0.15s; }
-.bg-btn:hover { border-color: var(--accent); color: var(--text); }
-.bg-btn.sel { border-color: var(--accent); color: var(--accent2); font-weight: 700; background: var(--accent-bg); }
-/* 背景ありのときカードを少し透過 */
-body:not(.bg-default) .card,
-body:not(.bg-default) .question-card,
-body:not(.bg-default) .mode-card,
-body:not(.bg-default) .stat,
-body:not(.bg-default) .wrong-list,
-body.bg-default .card,
-body.bg-default .question-card,
-body.bg-default .mode-card,
-body.bg-default .stat,
-body.bg-default .wrong-list { background: rgba(22,23,32,0.82); backdrop-filter: blur(4px); }
-body:not(.bg-default) #app,
-body.bg-default #app { background: transparent; }
-/* ── ルール折りたたみ ── */
-.rule-toggle { width:100%; background:transparent; border:1px solid var(--border2); border-radius:var(--radius-sm); padding:8px 14px; color:var(--text2); font-family:var(--font); font-size:13px; cursor:pointer; text-align:left; margin-top:8px; transition:background 0.15s; }
-.rule-toggle:hover { background:var(--bg3); }
-.rule-box { display:none; background:var(--bg2); border:1px solid var(--border); border-radius:var(--radius-sm); padding:14px; margin-top:4px; font-size:13px; line-height:1.8; color:var(--text2); }
-.rule-box.open { display:block; animation:fadeIn 0.2s ease; }
-.rule-box b { color:var(--text); }
-.rule-box .rule-item { margin-bottom:6px; padding-left:12px; position:relative; }
-.rule-box .rule-item::before { content:'・'; position:absolute; left:0; color:var(--accent2); }
-.dmg-ball { position:fixed; width:28px; height:28px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:18px; pointer-events:none; z-index:500; }
-.dmg-ball.blue { color:#8b84ff; background:rgba(108,99,255,0.4); box-shadow:0 0 14px #6c63ff,0 0 28px #6c63ff; }
-.dmg-ball.red  { color:#ff6b6b; background:rgba(255,77,77,0.4);  box-shadow:0 0 14px #ff4d4d,0 0 28px #ff4d4d; }
-@keyframes flyToTop    { 0%{opacity:1;transform:translateY(0) scale(1)} 70%{opacity:1;transform:translateY(-130px) scale(1.3)} 100%{opacity:0;transform:translateY(-150px) scale(0.2)} }
-@keyframes flyToBottom { 0%{opacity:1;transform:translateY(0) scale(1)} 70%{opacity:1;transform:translateY(130px) scale(1.3)} 100%{opacity:0;transform:translateY(150px) scale(0.2)} }
-.dmg-explosion { position:fixed; border-radius:50%; pointer-events:none; z-index:501; transform:translate(-50%,-50%); animation:explode 0.55s ease-out forwards; }
-.dmg-explosion.blue { background:radial-gradient(circle,#fff 0%,#8b84ff 35%,rgba(108,99,255,0.2) 65%,transparent 100%); }
-.dmg-explosion.red  { background:radial-gradient(circle,#fff 0%,#ff6b6b 35%,rgba(255,77,77,0.2) 65%,transparent 100%); }
-@keyframes explode { 0%{width:10px;height:10px;opacity:1} 60%{width:80px;height:80px;opacity:0.9} 100%{width:120px;height:120px;opacity:0} }
-@keyframes hpFlash { 0%,100%{opacity:1} 30%,70%{opacity:0.15} 50%{opacity:0.5} }
-.hp-flash { animation:hpFlash 0.45s ease; }
-@keyframes hpDanger { 0%,100%{opacity:1} 50%{opacity:0.25} }
-.hp-danger-pulse { animation:hpDanger 0.8s ease infinite !important; }
-@keyframes hpShake { 0%,100%{transform:translateX(0)} 20%{transform:translateX(-6px)} 40%{transform:translateX(6px)} 60%{transform:translateX(-4px)} 80%{transform:translateX(4px)} }
-.hp-shake { animation:hpShake 0.4s ease; }
 
-/* ── 対戦フィールド ── */
-.field { border-radius: var(--radius); padding: 10px 14px; margin-bottom: 0; }
-/* host=青, guest=赤（role固定色） */
-.field--host { background: rgba(108,99,255,0.08); border: 1px solid rgba(108,99,255,0.3); }
-.field--guest { background: rgba(255,77,77,0.08);  border: 1px solid rgba(255,77,77,0.3); }
-.field--host .field-name { color: #8b84ff; }
-.field--guest .field-name { color: #ff6b6b; }
-.field-hp--host { background: #6c63ff; width: 100%; }
-.field-hp--guest { background: #ff4d4d; width: 100%; }
-.field-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
-.field-name { font-size: 14px; font-weight: 700; }
-.field-stats { display: flex; gap: 12px; }
-.field-stat { display: flex; flex-direction: column; align-items: center; }
-.field-stat-label { font-size: 9px; color: var(--text3); }
-.field-stat-val { font-size: 15px; font-weight: 700; font-family: var(--mono); color: var(--text); }
-.field-hp-row { display: flex; align-items: center; gap: 8px; }
-.field-hp-bar-bg { flex: 1; height: 10px; background: var(--bg3); border-radius: 5px; overflow: hidden; }
-.field-hp-bar-fill { height: 100%; border-radius: 5px; transition: width 0.4s ease; }
-.field-hp-num { font-size: 20px; font-weight: 700; font-family: var(--mono); min-width: 32px; text-align: center; color: var(--text); }
+* { box-sizing: border-box; margin: 0; padding: 0; }
 
-/* ── ダメージプール（中央） ── */
-.dmg-pool { margin: 6px 0; display: flex; justify-content: center; }
-.dmg-pool-inner {
-  width: 100%; padding: 8px 16px;
-  border-radius: var(--radius); border: 1.5px solid;
-  display: flex; flex-direction: column; align-items: center; gap: 4px;
-  transition: background 0.3s, border-color 0.3s; min-height: 80px;
+body {
+  font-family: 'Shippori Mincho', serif;
+  background: var(--bg-deep);
+  background-image: 
+    radial-gradient(circle at 20% 30%, rgba(184, 74, 62, 0.08) 0%, transparent 50%),
+    radial-gradient(circle at 80% 70%, rgba(201, 169, 97, 0.08) 0%, transparent 50%);
+  color: var(--bg-card);
+  min-height: 100vh;
+  padding: 8px;
+  overflow-x: hidden;
+  font-size: 14px;
 }
-.dmg-pool-inner.neutral { background: rgba(255,200,50,0.06); border-color: rgba(255,200,50,0.25); }
-.dmg-pool-inner.blue    { background: rgba(108,99,255,0.12); border-color: rgba(108,99,255,0.45); }
-.dmg-pool-inner.red     { background: rgba(255,77,77,0.12);  border-color: rgba(255,77,77,0.45); }
-.dmg-pool-center { display: flex; align-items: center; gap: 8px; }
-.dmg-pool-icon { font-size: 20px; color: var(--text3); }
-.dmg-countdown { font-size: 22px; font-weight: 700; font-family: var(--mono); color: var(--amber); min-width: 24px; text-align: center; }
-.dmg-bombs-top, .dmg-bombs-bot { width: 100%; min-height: 26px; display: flex; flex-wrap: wrap; justify-content: center; gap: 3px; align-items: center; }
-.dmg-bomb { font-size: 20px; line-height: 1; transition: transform 0.15s; }
-.dmg-bomb:hover { transform: scale(1.2); }
-/* 爆発エフェクト */
-@keyframes bombExplode { 0%{transform:scale(1);opacity:1} 40%{transform:scale(2.2);opacity:0.9} 100%{transform:scale(3.5);opacity:0} }
-.bomb-exploding { animation: bombExplode 0.5s ease-out forwards; }
-.rank-row { display: flex; align-items: center; gap: 8px; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 14px; }
-.rank-row:last-child { border-bottom: none; }
-.rank-num { width: 28px; text-align: center; font-weight: 700; font-family: var(--mono); color: var(--text3); font-size: 13px; }
-.rank-num.gold { color: #ffd700; font-size: 16px; }
-.rank-num.silver { color: #c0c0c0; font-size: 16px; }
-.rank-num.bronze { color: #cd7f32; font-size: 16px; }
-.rank-name { flex: 1; font-weight: 500; }
-.rank-score { font-weight: 700; color: var(--accent2); font-family: var(--mono); }
-.rank-detail { font-size: 11px; color: var(--text3); }
-.rank-tabs { display: flex; gap: 4px; margin-bottom: 12px; flex-wrap: wrap; }
-.rank-tab { padding: 6px 12px; border-radius: var(--radius-sm); font-size: 13px; cursor: pointer; border: 1px solid var(--border2); background: transparent; color: var(--text2); font-family: var(--font); transition: background 0.15s; }
-.rank-tab:hover { background: var(--bg3); }
-.rank-tab.sel { background: var(--accent); border-color: var(--accent); color: white; font-weight: 700; }
-/* 登録モーダル */
-.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; z-index: 100; }
-.modal-box { background: var(--bg2); border: 1px solid var(--border2); border-radius: var(--radius); padding: 24px; width: 90%; max-width: 340px; }
-.modal-title { font-size: 18px; font-weight: 700; margin-bottom: 8px; text-align: center; }
-.modal-sub { font-size: 13px; color: var(--text2); margin-bottom: 16px; text-align: center; }
-.modal-score { font-size: 28px; font-weight: 700; color: var(--accent2); font-family: var(--mono); text-align: center; margin-bottom: 16px; }
-.rank-highlight { background: var(--accent-bg); border-radius: var(--radius-sm); }
+
+.app {
+  max-width: 1400px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 1fr 260px;
+  gap: 12px;
+}
+
+@media (max-width: 1024px) {
+  .app { grid-template-columns: 1fr; }
+}
+
+header {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--gold);
+  position: relative;
+}
+
+header::before {
+  content: "金 屬 之 戯";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 5rem;
+  color: rgba(201, 169, 97, 0.04);
+  letter-spacing: 1rem;
+  font-weight: 800;
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+h1 {
+  font-size: 1.4rem;
+  font-weight: 700;
+  letter-spacing: 0.3em;
+  color: var(--gold-bright);
+  position: relative;
+}
+
+h1 .accent { color: var(--vermilion); }
+
+.subtitle {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.65rem;
+  color: var(--gold);
+  opacity: 0.6;
+  letter-spacing: 0.4em;
+  margin-top: 4px;
+}
+
+main {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.player-area {
+  background: linear-gradient(135deg, var(--bg-mid) 0%, #1f1612 100%);
+  border: 1px solid rgba(201, 169, 97, 0.2);
+  border-radius: 4px;
+  padding: 8px 12px;
+  position: relative;
+}
+
+.player-area.active {
+  border-color: var(--gold);
+  box-shadow: 0 0 30px rgba(201, 169, 97, 0.15);
+}
+
+.player-area.active::before {
+  content: "▼ 手番";
+  position: absolute;
+  top: -12px;
+  left: 16px;
+  background: var(--vermilion);
+  color: var(--bg-card);
+  padding: 2px 12px;
+  font-size: 0.7rem;
+  letter-spacing: 0.2em;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.player-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+  font-size: 0.8rem;
+  color: var(--gold);
+  letter-spacing: 0.2em;
+}
+
+.score-badge {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.75rem;
+  background: var(--bg-deep);
+  padding: 3px 8px;
+  border: 1px solid var(--gold);
+  border-radius: 2px;
+}
+
+.player-body {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 6px;
+}
+
+.section-label {
+  font-size: 0.65rem;
+  letter-spacing: 0.3em;
+  color: var(--gold);
+  opacity: 0.7;
+  margin-bottom: 3px;
+}
+
+.cards {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  min-height: 75px;
+}
+
+.cards-pending {
+  min-height: 55px;
+  border: 1px dashed rgba(201, 169, 97, 0.3);
+  padding: 4px;
+  border-radius: 3px;
+}
+
+.cards-pending:empty::before {
+  content: "（保留札なし）";
+  color: var(--ink-soft);
+  font-size: 0.75rem;
+  letter-spacing: 0.1em;
+}
+
+.field-area {
+  background: linear-gradient(180deg, #243b27 0%, #1a2a1c 100%);
+  border: 2px solid var(--moss);
+  border-radius: 4px;
+  padding: 10px 12px;
+  position: relative;
+}
+
+.field-area::before {
+  content: "場";
+  position: absolute;
+  top: -14px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--bg-deep);
+  color: var(--gold);
+  padding: 2px 16px;
+  font-size: 0.85rem;
+  letter-spacing: 0.4em;
+}
+
+.field-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  font-size: 0.75rem;
+  font-family: 'JetBrains Mono', monospace;
+  color: var(--gold);
+  opacity: 0.7;
+}
+
+.card {
+  width: 48px;
+  height: 70px;
+  background: var(--bg-card);
+  background-image: 
+    linear-gradient(135deg, rgba(255,255,255,0.4) 0%, transparent 50%),
+    radial-gradient(circle at 30% 20%, rgba(201, 169, 97, 0.1) 0%, transparent 70%);
+  color: var(--ink);
+  border-radius: 3px;
+  border: 1px solid var(--bg-card-shadow);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  position: relative;
+  box-shadow: 
+    0 2px 4px rgba(0,0,0,0.3),
+    inset 0 1px 0 rgba(255,255,255,0.5);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  user-select: none;
+  font-family: 'Shippori Mincho', serif;
+}
+
+.card:hover {
+  transform: translateY(-4px);
+  box-shadow: 
+    0 6px 12px rgba(0,0,0,0.4),
+    inset 0 1px 0 rgba(255,255,255,0.5);
+}
+
+.card.selected {
+  transform: translateY(-12px);
+  border-color: var(--vermilion);
+  box-shadow: 
+    0 8px 16px rgba(184, 74, 62, 0.4),
+    0 0 0 2px var(--vermilion),
+    inset 0 1px 0 rgba(255,255,255,0.5);
+}
+
+.card.matchable {
+  border-color: var(--gold);
+  box-shadow: 
+    0 2px 4px rgba(0,0,0,0.3),
+    0 0 0 2px var(--gold-bright),
+    0 0 20px rgba(201, 169, 97, 0.3),
+    inset 0 1px 0 rgba(255,255,255,0.5);
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { box-shadow: 0 2px 4px rgba(0,0,0,0.3), 0 0 0 2px var(--gold-bright), 0 0 20px rgba(201, 169, 97, 0.3); }
+  50% { box-shadow: 0 2px 4px rgba(0,0,0,0.3), 0 0 0 2px var(--gold-bright), 0 0 30px rgba(201, 169, 97, 0.6); }
+}
+
+.card-symbol {
+  font-size: 1.2rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  margin-bottom: 2px;
+}
+
+.card-valences {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+}
+
+.valence-tag {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.55rem;
+  font-weight: 700;
+  padding: 0px 4px;
+  border-radius: 2px;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+}
+
+.valence-tag.v-plus1 { background: var(--plus1); color: white; }
+.valence-tag.v-plus2-typical { background: var(--typical); color: var(--bg-deep); }
+.valence-tag.v-plus2-transition { background: var(--transition); color: white; }
+.valence-tag.v-plus3 { background: var(--plus3); color: white; }
+.valence-tag.v-plus4 { background: var(--plus4); color: white; }
+
+.card-back {
+  background: linear-gradient(135deg, #2a1f18 0%, #4a3a2a 50%, #2a1f18 100%);
+  border-color: var(--gold);
+  cursor: default;
+  position: relative;
+  overflow: hidden;
+}
+
+.card-back::after {
+  content: "化";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 2rem;
+  color: var(--gold);
+  opacity: 0.5;
+}
+
+.card-back:hover { transform: none; box-shadow: 0 2px 4px rgba(0,0,0,0.3); }
+
+.controls {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+
+button {
+  font-family: 'Shippori Mincho', serif;
+  background: var(--bg-mid);
+  color: var(--gold-bright);
+  border: 1px solid var(--gold);
+  padding: 5px 12px;
+  font-size: 0.78rem;
+  letter-spacing: 0.15em;
+  cursor: pointer;
+  transition: all 0.2s;
+  border-radius: 2px;
+}
+
+button:hover:not(:disabled) {
+  background: var(--gold);
+  color: var(--bg-deep);
+}
+
+button:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+button.primary {
+  background: var(--vermilion);
+  color: var(--bg-card);
+  border-color: var(--vermilion);
+}
+
+button.primary:hover:not(:disabled) {
+  background: #d65a4e;
+  border-color: #d65a4e;
+}
+
+button.danger {
+  border-color: var(--ink-soft);
+  color: var(--ink-soft);
+}
+
+aside {
+  background: var(--bg-mid);
+  border: 1px solid rgba(201, 169, 97, 0.2);
+  border-radius: 4px;
+  padding: 10px;
+  height: fit-content;
+  max-height: 95vh;
+  overflow-y: auto;
+}
+
+aside h2 {
+  font-size: 0.85rem;
+  letter-spacing: 0.3em;
+  color: var(--gold-bright);
+  margin-bottom: 8px;
+  padding-bottom: 5px;
+  border-bottom: 1px solid var(--gold);
+}
+
+.role-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.8rem;
+}
+
+.role-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 6px 8px;
+  background: var(--bg-deep);
+  border-left: 2px solid var(--gold);
+  gap: 8px;
+}
+
+.role-item.completed {
+  border-left-color: var(--vermilion);
+  background: rgba(184, 74, 62, 0.1);
+}
+
+.role-name {
+  color: var(--bg-card);
+  font-size: 0.78rem;
+}
+
+.role-formula {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.65rem;
+  color: var(--ink-soft);
+  margin-top: 2px;
+  display: block;
+}
+
+.role-points {
+  font-family: 'JetBrains Mono', monospace;
+  color: var(--gold);
+  font-weight: 700;
+  font-size: 0.75rem;
+  white-space: nowrap;
+}
+
+/* スロットエリア */
+.slots-area {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  background: rgba(0,0,0,0.2);
+  border: 1px dashed rgba(201, 169, 97, 0.3);
+  padding: 4px;
+  border-radius: 3px;
+  min-height: 30px;
+}
+
+.slots-area:empty::before {
+  content: "（まだ役を狙っていません）";
+  color: var(--ink-soft);
+  font-size: 0.7rem;
+  letter-spacing: 0.05em;
+  display: block;
+  text-align: center;
+  padding: 6px 0;
+}
+
+.slot {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--bg-deep);
+  padding: 3px 6px;
+  border: 1px solid rgba(201, 169, 97, 0.3);
+  border-radius: 3px;
+  font-size: 0.7rem;
+}
+
+.slot.complete {
+  border-color: var(--vermilion);
+  background: rgba(184, 74, 62, 0.15);
+}
+
+.slot-name {
+  font-weight: 600;
+  color: var(--gold-bright);
+  min-width: 90px;
+  font-size: 0.7rem;
+}
+
+.slot-mini-cards {
+  display: flex;
+  gap: 2px;
+  flex: 1;
+  flex-wrap: wrap;
+}
+
+.slot-mini-card {
+  width: 20px;
+  height: 26px;
+  background: var(--bg-card);
+  color: var(--ink);
+  border-radius: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.6rem;
+  font-weight: 700;
+  border: 1px solid var(--bg-card-shadow);
+}
+
+.slot-mini-card.empty {
+  background: transparent;
+  border: 1px dashed rgba(201, 169, 97, 0.4);
+  color: rgba(201, 169, 97, 0.6);
+}
+
+.slot-progress {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.7rem;
+  color: var(--gold);
+  white-space: nowrap;
+}
+
+.slot-points {
+  font-family: 'JetBrains Mono', monospace;
+  color: var(--vermilion);
+  font-weight: 700;
+}
+
+.message-log {
+  background: var(--bg-deep);
+  border: 1px solid rgba(201, 169, 97, 0.2);
+  padding: 6px 10px;
+  border-radius: 4px;
+  font-size: 0.78rem;
+  min-height: 32px;
+  font-family: 'JetBrains Mono', monospace;
+  color: var(--gold-bright);
+  letter-spacing: 0.05em;
+}
+
+.message-log .turn-label {
+  color: var(--vermilion);
+  font-weight: 700;
+}
+
+.action-bar {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  align-items: center;
+  min-height: 0;
+  transition: min-height 0.2s;
+}
+
+.action-bar:not(:empty) {
+  min-height: 40px;
+  padding: 6px;
+  background: rgba(184, 74, 62, 0.1);
+  border: 1px solid var(--vermilion);
+  border-radius: 4px;
+  margin-bottom: -4px;
+}
+
+.action-bar .action-info {
+  font-size: 0.78rem;
+  color: var(--gold-bright);
+  letter-spacing: 0.05em;
+}
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.85);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  backdrop-filter: blur(4px);
+}
+
+.modal-overlay.active { display: flex; }
+
+.modal {
+  background: var(--bg-mid);
+  border: 2px solid var(--gold);
+  border-radius: 4px;
+  padding: 24px;
+  max-width: 600px;
+  width: 90%;
+  text-align: center;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.modal h2 {
+  color: var(--gold-bright);
+  font-size: 1.3rem;
+  letter-spacing: 0.3em;
+  margin-bottom: 12px;
+}
+
+.modal-card-display {
+  display: flex;
+  justify-content: center;
+  margin: 12px 0;
+}
+
+.modal-section-label {
+  font-size: 0.75rem;
+  letter-spacing: 0.2em;
+  color: var(--gold);
+  margin: 16px 0 8px;
+  text-align: left;
+}
+
+.modal-roles {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 8px 0;
+}
+
+.modal-role {
+  background: var(--bg-deep);
+  border: 1px solid rgba(201, 169, 97, 0.3);
+  padding: 10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-align: left;
+}
+
+.modal-role:hover { 
+  background: rgba(201, 169, 97, 0.1);
+  border-color: var(--gold);
+}
+
+.modal-role.selected {
+  background: var(--vermilion);
+  color: var(--bg-card);
+  border-color: var(--vermilion);
+}
+
+.modal-role.selected .role-name,
+.modal-role.selected .role-points,
+.modal-role.selected .role-formula,
+.modal-role.selected .role-progress {
+  color: var(--bg-card);
+}
+
+.modal-role.disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.modal-role.disabled:hover {
+  background: var(--bg-deep);
+}
+
+.role-progress {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.7rem;
+  color: var(--gold);
+  margin-top: 2px;
+}
+
+.modal-pending-section {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px dashed rgba(201, 169, 97, 0.3);
+}
+
+.modal-pending-card-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: rgba(0,0,0,0.3);
+  padding: 8px;
+  border-radius: 3px;
+  margin-bottom: 8px;
+  text-align: left;
+}
+
+.modal-pending-card-row .card {
+  flex-shrink: 0;
+}
+
+.modal-pending-card-row .options {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.modal-pending-card-row select {
+  background: var(--bg-deep);
+  color: var(--gold-bright);
+  border: 1px solid var(--gold);
+  padding: 4px 8px;
+  font-family: 'Shippori Mincho', serif;
+  font-size: 0.85rem;
+  border-radius: 2px;
+}
+
+.modal-buttons {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  margin-top: 20px;
+}
+
+.koikoi-banner {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) scale(0);
+  font-size: 6rem;
+  font-weight: 800;
+  color: var(--vermilion);
+  text-shadow: 0 0 40px rgba(184, 74, 62, 0.8);
+  letter-spacing: 0.3em;
+  z-index: 200;
+  pointer-events: none;
+  transition: transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.koikoi-banner.show {
+  transform: translate(-50%, -50%) scale(1);
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+  font-size: 0.65rem;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  color: var(--ink-soft);
+}
+
+.legend-swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+}
+
+.opponent-hand .card-back {
+  width: 50px;
+  height: 75px;
+}
+
+.opponent-hand .card-back::after { font-size: 1.4rem; }
+
+.round-btn {
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  font-size: 0.95rem;
+  font-weight: 700;
+  font-family: 'JetBrains Mono', monospace;
+  background: var(--bg-mid);
+  border: 1px solid var(--gold);
+  color: var(--gold);
+  border-radius: 2px;
+  cursor: pointer;
+}
+
+.round-btn:hover {
+  background: var(--bg-deep);
+  color: var(--gold-bright);
+}
+
+.round-btn.selected {
+  background: var(--vermilion);
+  color: var(--bg-card);
+  border-color: var(--vermilion);
+}
+
+@media (max-width: 768px) {
+  .card { width: 52px; height: 78px; }
+  .card-symbol { font-size: 1.3rem; }
+  .valence-tag { font-size: 0.55rem; padding: 1px 3px; }
+  h1 { font-size: 1.4rem; letter-spacing: 0.2em; }
+  header::before { font-size: 4rem; }
+}
+
+.deck-stack {
+  position: relative;
+  width: 48px;
+  height: 70px;
+}
+
+.deck-count {
+  position: absolute;
+  bottom: -16px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.65rem;
+  color: var(--gold);
+  white-space: nowrap;
+}
+
+.drawn-area {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.drawn-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.6rem;
+  color: var(--gold);
+  letter-spacing: 0.2em;
+  opacity: 0.7;
+}
+
+.drawn-slot {
+  width: 48px;
+  height: 70px;
+  border: 1px dashed rgba(201, 169, 97, 0.3);
+  border-radius: 3px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.drawn-slot .card {
+  cursor: default;
+  animation: cardFlip 0.4s ease-out;
+  box-shadow: 0 4px 16px rgba(232, 200, 120, 0.4),
+              0 0 0 2px var(--gold-bright),
+              inset 0 1px 0 rgba(255,255,255,0.5);
+}
+
+@keyframes cardFlip {
+  0% { transform: rotateY(180deg) scale(0.8); opacity: 0; }
+  50% { transform: rotateY(90deg) scale(0.9); opacity: 0.5; }
+  100% { transform: rotateY(0deg) scale(1); opacity: 1; }
+}
+
+.pending-marker {
+  font-size: 0.6rem;
+  color: var(--gold);
+  letter-spacing: 0.15em;
+  margin-top: 2px;
+  opacity: 0.7;
+}
 </style>
 </head>
 <body>
-<div id="app">
 
-  <!-- MODE SELECT -->
-  <div id="screen-mode" class="screen active">
-    <div class="title-block">
-      <div class="title-label">CHEMISTRY QUIZ</div>
-      <h1 class="title-main">化学式マスター</h1>
-      <p class="title-sub">日本語名から化学式を4択で選ぼう</p>
+<div class="koikoi-banner" id="koikoiBanner">こいこい！</div>
+
+<!-- 配置モーダル -->
+<div class="modal-overlay" id="placeModal">
+  <div class="modal">
+    <h2 id="placeModalTitle">札を獲得</h2>
+    <div class="modal-card-display" id="placeModalCard"></div>
+    <p style="color: var(--gold); font-size: 0.85rem;">どの役で使いますか？</p>
+    <div id="placeModalStatus" style="margin: 8px 0; padding: 8px; background: var(--bg-deep); border-radius: 3px; font-size: 0.85rem; letter-spacing: 0.05em; border: 1px solid var(--gold);"></div>
+    <div class="modal-section-label" id="newCardSectionLabel">獲得した札の配置先</div>
+    <div class="modal-roles" id="placeModalRoles"></div>
+    <div class="modal-pending-section" id="placeModalPendingSection" style="display:none;">
+      <div class="modal-section-label">保留中の札も配置できます</div>
+      <div id="placeModalPendingList"></div>
     </div>
-    <div class="mode-grid">
-      <button class="mode-card" onclick="goMode('solo')">
-        <span class="mode-icon">🧪</span><span class="mode-name">1人モード</span>
-        <span class="mode-desc">タイムアタック<br>スコアを競おう</span>
-      </button>
-      <button class="mode-card mode-card--battle" onclick="showS('multi-top')">
-        <span class="mode-icon">⚔️</span><span class="mode-name">2人対戦</span>
-        <span class="mode-desc">別デバイスで対戦<br>HPを削り合え</span>
-      </button>
-    </div>
-    <button class="btn btn--full" style="margin-top:10px;" onclick="showRanking('normal')">🏆 オンラインランキング</button>
-    <div class="bg-selector">
-      <button class="bg-btn sel" onclick="setBg('default')">🌙 デフォルト</button>
-      <button class="bg-btn" onclick="setBg('spring')">🌸 春</button>
-      <button class="bg-btn" onclick="setBg('summer')">🌻 夏</button>
-      <button class="bg-btn" onclick="setBg('fall')">🍂 秋</button>
-      <button class="bg-btn" onclick="setBg('winter')">❄️ 冬</button>
-    </div>
-    <div style="text-align:center;margin-top:8px;display:flex;justify-content:center;gap:8px;">
-      <button class="bg-btn" id="bgm-btn" onclick="toggleBgm()" style="color:var(--red);">🎵 音楽OFF</button>
-      <button class="bg-btn" id="sfx-btn" onclick="toggleSfx()" style="color:var(--red);">🔊 効果音OFF</button>
+    <div class="modal-buttons">
+      <button class="primary" id="placeModalConfirmBtn">決定</button>
     </div>
   </div>
-
-  <!-- SOLO HOME -->
-  <div id="screen-solo-home" class="screen">
-    <div class="page-header"><button class="back-btn" onclick="showS('mode')">← 戻る</button><h2>1人モード</h2></div>
-    <div class="card">
-      <div class="card-label">難易度</div>
-      <div class="diff-grid">
-        <button class="diff-btn" data-d="easy"><span class="diff-name">かんたん</span><span class="diff-desc">1価イオン中心 / スキップ無制限</span></button>
-        <button class="diff-btn sel" data-d="normal"><span class="diff-name">ふつう</span><span class="diff-desc">多価イオン含む / スキップ3回</span></button>
-        <button class="diff-btn" data-d="hard"><span class="diff-name">むずかしい</span><span class="diff-desc">全範囲・時間ボーナス / スキップ1回</span></button>
-        <button class="diff-btn diff-btn--oni" data-d="oni"><span class="diff-name">鬼</span><span class="diff-desc">全範囲・時間ボーナス / スキップなし</span></button>
-      </div>
-      <div class="hint-box">むずかしい・鬼は5問連続正答から時間ボーナス（残り30s以上+2.0s / 15〜30s +1.5s / 15s未満 +1.0s）</div>
-    </div>
-    <div class="card"><div class="card-label">プレイヤー名</div><input id="solo-name" type="text" maxlength="10" placeholder="名前（最大10文字）" class="text-input" /></div>
-    <button class="btn btn--primary btn--full" onclick="goSoloReady()">スタート</button>
-    <button class="btn btn--full" style="margin-top:8px;" onclick="showRanking(S.pendingDiff||'normal')">🏆 ランキングを見る</button>
-    <button class="rule-toggle" onclick="toggleRule('rule-solo')">❓ ルールを見る</button>
-    <div class="rule-box" id="rule-solo">
-      <div class="rule-item"><b>基本ルール</b>：40秒以内に日本語名から化学式を4択で選ぶ</div>
-      <div class="rule-item"><b>スコア</b>：正解でポイント獲得。コンボが続くほどボーナス加算</div>
-      <div class="rule-item"><b>コンボボーナス</b>：連続正解でスコアが10pts/問ずつ増加（最大+80pts）</div>
-      <div class="rule-item"><b>時間ボーナス</b>（むずかしい・鬼のみ）：5連続正解から残り時間に応じてボーナス秒数加算</div>
-      <div class="rule-item"><b>スキップ</b>：かんたん=無制限 / ふつう=3回 / むずかしい=1回 / 鬼=なし</div>
-    </div>
-  </div>
-
-  <!-- SOLO READY -->
-  <div id="screen-solo-ready" class="screen">
-    <div class="wait-block">
-      <div class="wait-title" id="solo-ready-title">準備はいい？</div>
-      <div style="font-size:13px;color:var(--text2);margin-bottom:20px;" id="solo-ready-msg">ボタンを押したらカウントダウン開始！</div>
-      <button class="btn btn--primary btn--full" id="solo-ready-btn" onclick="pressSoloReady()" style="font-size:18px;padding:16px;">Ready？</button>
-    </div>
-    <div id="solo-ready-countdown" style="display:none;text-align:center;padding:2rem 0;">
-      <div style="font-size:80px;font-weight:700;color:var(--accent2);" id="solo-countdown-num">3</div>
-    </div>
-  </div>
-
-  <!-- SOLO GAME -->
-  <div id="screen-solo-game" class="screen">
-    <div class="stats-row">
-      <div class="stat"><div class="stat-label">スコア</div><div class="stat-value" id="sg-score">0</div></div>
-      <div class="stat"><div class="stat-label">正解</div><div class="stat-value" id="sg-cor">0</div></div>
-      <div class="stat"><div class="stat-label">コンボ</div><div class="stat-value" id="sg-combo">0</div></div>
-      <div class="stat"><div class="stat-label">スキップ</div><div class="stat-value" id="sg-skip">-</div></div>
-      <div class="stat stat--timer"><div class="stat-label">残り</div><div class="stat-value" id="sg-timer">40</div></div>
-    </div>
-    <div class="progress-bar"><div class="progress-fill" id="sg-prog"></div></div>
-    <div class="question-card">
-      <div class="question-label">次の化合物の化学式はどれ？</div>
-      <div class="question-text" id="sg-name"></div>
-      <div class="bonus-msg" id="sg-bonus"></div>
-    </div>
-    <div class="choices-grid" id="sg-choices"></div>
-    <div class="action-row">
-      <button class="btn btn--skip" id="sg-skip-btn" onclick="soloSkip()">スキップ</button>
-      <button class="btn btn--end" onclick="soloEnd()">終了</button>
-    </div>
-  </div>
-
-  <!-- SOLO RESULT -->
-  <div id="screen-solo-result" class="screen">
-    <div class="result-hero">
-      <div class="result-medal" id="sr-medal"></div>
-      <div class="result-title" id="sr-title"></div>
-      <div class="result-sub" id="sr-sub"></div>
-    </div>
-    <div class="result-stats">
-      <div class="stat"><div class="stat-label">スコア</div><div class="stat-value stat-value--accent" id="sr-score"></div></div>
-      <div class="stat"><div class="stat-label">正解数</div><div class="stat-value" id="sr-cor"></div></div>
-      <div class="stat"><div class="stat-label">正答率</div><div class="stat-value" id="sr-rate"></div></div>
-      <div class="stat"><div class="stat-label">最高コンボ</div><div class="stat-value" id="sr-mc"></div></div>
-    </div>
-    <div id="sr-wrongs"></div>
-    <div class="btn-row">
-      <button class="btn btn--primary" onclick="goSoloReady()">もう一度</button>
-      <button class="btn" onclick="showS('mode')">トップへ</button>
-    </div>
-    <button class="btn btn--full" style="margin-top:8px;border-color:var(--amber);color:var(--amber);" onclick="showRegisterModal()">🏆 ランキングに登録する</button>
-  </div>
-
-  <!-- RANKING -->
-  <div id="screen-ranking" class="screen">
-    <div class="page-header">
-      <button class="back-btn" id="ranking-back-btn" onclick="showS('mode')">← 戻る</button>
-      <h2>🏆 オンラインランキング</h2>
-    </div>
-    <div class="rank-tabs">
-      <button class="rank-tab" data-rd="easy" onclick="switchRankTab(this,'easy')">かんたん</button>
-      <button class="rank-tab sel" data-rd="normal" onclick="switchRankTab(this,'normal')">ふつう</button>
-      <button class="rank-tab" data-rd="hard" onclick="switchRankTab(this,'hard')">むずかしい</button>
-      <button class="rank-tab" data-rd="oni" onclick="switchRankTab(this,'oni')">鬼</button>
-    </div>
-    <div class="card" id="ranking-list" style="min-height:200px;">
-      <div style="text-align:center;color:var(--text3);padding:2rem;font-size:14px;">読み込み中…</div>
-    </div>
-  </div>
-
-  <!-- 登録モーダル -->
-  <div id="register-modal" class="modal-overlay" style="display:none;">
-    <div class="modal-box">
-      <div class="modal-title">🏆 ランキング登録</div>
-      <div class="modal-sub" id="reg-diff-label">ふつう</div>
-      <div class="modal-score" id="reg-score">0</div>
-      <div class="btn-row">
-        <button class="btn btn--primary" onclick="submitRanking()">登録する</button>
-        <button class="btn" onclick="closeRegisterModal()">キャンセル</button>
-      </div>
-      <div id="reg-msg" style="font-size:13px;text-align:center;margin-top:8px;min-height:18px;"></div>
-    </div>
-  </div>
-
-  <!-- MULTI TOP -->
-  <div id="screen-multi-top" class="screen">
-    <div class="page-header"><button class="back-btn" onclick="showS('mode')">← 戻る</button><h2>2人対戦</h2></div>
-    <div class="mode-grid">
-      <button class="mode-card" onclick="showS('multi-setup')">
-        <span class="mode-icon">🏠</span><span class="mode-name">ルームを作る</span>
-        <span class="mode-desc">難易度・時間を設定して<br>ルームIDを発行</span>
-      </button>
-      <button class="mode-card mode-card--battle" onclick="showS('multi-join')">
-        <span class="mode-icon">🚪</span><span class="mode-name">ルームに参加</span>
-        <span class="mode-desc">ルームIDを入力して<br>対戦に参加</span>
-      </button>
-    </div>
-    <button class="btn btn--full" style="margin-top:10px;" onclick="showS('cpu-setup')">🤖 CPU対戦</button>
-  </div>
-
-  <!-- CPU SETUP -->
-  <div id="screen-cpu-setup" class="screen">
-    <div class="page-header"><button class="back-btn" onclick="showS('multi-top')">← 戻る</button><h2>🤖 CPU対戦</h2></div>
-    <div class="card"><div class="card-label">あなたの名前</div><input id="cpu-name" type="text" maxlength="10" placeholder="名前（最大10文字）" class="text-input" /></div>
-    <div class="card">
-      <div class="card-label">難易度</div>
-      <div class="diff-grid">
-        <button class="diff-btn" data-cd="easy"><span class="diff-name">かんたん</span><span class="diff-desc">正答率80% / 5秒/問</span></button>
-        <button class="diff-btn sel" data-cd="normal"><span class="diff-name">ふつう</span><span class="diff-desc">正答率80% / 4.5秒/問</span></button>
-        <button class="diff-btn" data-cd="hard"><span class="diff-name">むずかしい</span><span class="diff-desc">正答率90% / 3.5秒/問</span></button>
-        <button class="diff-btn diff-btn--oni" data-cd="oni"><span class="diff-name">鬼</span><span class="diff-desc">正答率95% / 2.75秒/問</span></button>
-      </div>
-    </div>
-    <div class="card">
-      <div class="card-label">制限時間</div>
-      <div class="time-grid">
-        <button class="time-btn" data-ct="60">1分</button>
-        <button class="time-btn sel" data-ct="90">1分30秒</button>
-        <button class="time-btn" data-ct="120">2分</button>
-        <button class="time-btn" data-ct="0">無制限</button>
-      </div>
-    </div>
-    <div class="card">
-      <div class="card-label">初期HP</div>
-      <div class="time-grid">
-        <button class="time-btn" data-chp="15">15</button>
-        <button class="time-btn sel" data-chp="20">20</button>
-        <button class="time-btn" data-chp="25">25</button>
-        <button class="time-btn" data-chp="30">30</button>
-      </div>
-    </div>
-    <button class="btn btn--primary btn--full" onclick="startCpuBattle()">CPU対戦スタート</button>
-    <button class="rule-toggle" onclick="toggleRule('rule-cpu')">❓ ルールを見る</button>
-    <div class="rule-box" id="rule-cpu">
-      <div class="rule-item"><b>基本ルール</b>：CPUと1対1で対戦。ダメージシステムは2人対戦と同じ</div>
-      <div class="rule-item"><b>CPU（赤）</b>：難易度に応じた速度・正答率で自動解答</div>
-      <div class="rule-item"><b>かんたん</b>：正答率80% / 約5秒/問</div>
-      <div class="rule-item"><b>ふつう</b>：正答率80% / 約4.5秒/問</div>
-      <div class="rule-item"><b>むずかしい</b>：正答率90% / 約3.5秒/問</div>
-      <div class="rule-item"><b>鬼</b>：正答率95% / 約2.75秒/問</div>
-    </div>
-  </div>
-
-  <!-- MULTI SETUP -->
-  <div id="screen-multi-setup" class="screen">
-    <div class="page-header"><button class="back-btn" onclick="showS('multi-top')">← 戻る</button><h2>ルームを作る</h2></div>
-    <div class="card"><div class="card-label">あなたの名前</div><input id="multi-name" type="text" maxlength="10" placeholder="名前（最大10文字）" class="text-input" /></div>
-    <div class="card">
-      <div class="card-label">難易度</div>
-      <div class="diff-grid">
-        <button class="diff-btn" data-md="easy"><span class="diff-name">かんたん</span></button>
-        <button class="diff-btn sel" data-md="normal"><span class="diff-name">ふつう</span></button>
-        <button class="diff-btn" data-md="hard"><span class="diff-name">むずかしい</span></button>
-        <button class="diff-btn diff-btn--oni" data-md="oni"><span class="diff-name">鬼</span></button>
-      </div>
-    </div>
-    <div class="card">
-      <div class="card-label">制限時間</div>
-      <div class="time-grid">
-        <button class="time-btn" data-t="60">1分</button>
-        <button class="time-btn sel" data-t="90">1分30秒</button>
-        <button class="time-btn" data-t="120">2分</button>
-        <button class="time-btn" data-t="0">無制限</button>
-      </div>
-    </div>
-    <div class="card">
-      <div class="card-label">初期HP</div>
-      <div class="time-grid">
-        <button class="time-btn hp-btn" data-hp="15">15</button>
-        <button class="time-btn hp-btn sel" data-hp="20">20</button>
-        <button class="time-btn hp-btn" data-hp="25">25</button>
-        <button class="time-btn hp-btn" data-hp="30">30</button>
-      </div>
-    </div>
-    <button class="btn btn--primary btn--full" onclick="createRoom()">ルームを作る</button>
-    <button class="rule-toggle" onclick="toggleRule('rule-multi')">❓ ルールを見る</button>
-    <div class="rule-box" id="rule-multi">
-      <div class="rule-item"><b>基本ルール</b>：別デバイスの相手とリアルタイム対戦。先に相手のHPを0にすれば勝利</div>
-      <div class="rule-item"><b>ダメージ場</b>：プール中央に爆弾が蓄積。5秒後に清算されHPに反映</div>
-      <div class="rule-item"><b>攻撃ダメージ</b>：3〜4連続正解=2 / 5〜10連続=3 / 11連続以上=5</div>
-      <div class="rule-item"><b>自爆ダメージ</b>：不正解で自分のHPに3ダメージ（プール経由）</div>
-      <div class="rule-item"><b>相殺</b>：両者のダメージが打ち消し合い、差分だけ適用される</div>
-      <div class="rule-item"><b>終了ボタン</b>：押した時点でHP高い方が勝ち</div>
-    </div>
-  </div>
-
-  <!-- MULTI JOIN -->
-  <div id="screen-multi-join" class="screen">
-    <div class="page-header"><button class="back-btn" onclick="showS('multi-top')">← 戻る</button><h2>ルームに参加</h2></div>
-    <div class="card"><div class="card-label">あなたの名前</div><input id="join-name" type="text" maxlength="10" placeholder="名前（最大10文字）" class="text-input" /></div>
-    <div class="card">
-      <div class="card-label">ルームID（6桁）</div>
-      <input id="join-room-id" type="text" maxlength="6" placeholder="例: ABC123" class="text-input" style="font-family:var(--mono);font-size:22px;letter-spacing:.12em;" oninput="this.value=this.value.toUpperCase()" />
-    </div>
-    <button class="btn btn--primary btn--full" onclick="joinRoom()">参加する</button>
-    <div id="join-error" class="error-msg"></div>
-  </div>
-
-  <!-- MULTI READY -->
-  <div id="screen-multi-ready" class="screen">
-    <div class="wait-block">
-      <div class="wait-title">対戦相手が見つかりました！</div>
-      <div style="display:flex;justify-content:center;gap:24px;margin:20px 0;">
-        <div style="text-align:center;">
-          <div style="font-size:13px;color:var(--text2);margin-bottom:6px;" id="ready-my-name">あなた</div>
-          <div id="ready-my-status" style="font-size:28px;">⏳</div>
-        </div>
-        <div style="font-size:24px;color:var(--text3);display:flex;align-items:center;">VS</div>
-        <div style="text-align:center;">
-          <div style="font-size:13px;color:var(--text2);margin-bottom:6px;" id="ready-opp-name">相手</div>
-          <div id="ready-opp-status" style="font-size:28px;">⏳</div>
-        </div>
-      </div>
-      <div style="font-size:13px;color:var(--text2);margin-bottom:20px;" id="ready-msg">準備ができたらReadyを押してください</div>
-      <button class="btn btn--primary btn--full" id="ready-btn" onclick="pressReady()" style="font-size:18px;padding:16px;">Ready？</button>
-    </div>
-    <div id="ready-countdown" style="display:none;text-align:center;padding:2rem 0;">
-      <div style="font-size:80px;font-weight:700;color:var(--accent2);" id="countdown-num">3</div>
-    </div>
-  </div>
-
-  <!-- MULTI WAIT -->
-  <div id="screen-multi-wait" class="screen">
-    <div class="wait-block">
-      <div class="wait-title">対戦相手を待っています</div>
-      <div class="wait-sub">このルームIDを相手に伝えてください</div>
-      <div class="room-id-display" id="wait-room-id">------</div>
-      <div class="wait-status"><span class="dot dot--wait"></span>相手の参加を待っています…</div>
-    </div>
-    <button class="btn btn--full" onclick="cancelRoom()">キャンセル</button>
-  </div>
-
-  <!-- MULTI GAME -->
-  <div id="screen-multi-game" class="screen">
-
-    <!-- 相手フィールド（上） -->
-    <div class="field" id="mg-field-opp">
-      <div class="field-header">
-        <span class="field-name" id="mg-opp-name">相手</span>
-        <div class="field-stats">
-          <span class="field-stat"><span class="field-stat-label">残り</span><span class="field-stat-val timer-val" id="mg-timer">-</span></span>
-        </div>
-      </div>
-      <div class="field-hp-row">
-        <div class="field-hp-bar-bg"><div class="field-hp-bar-fill" id="mg-opp-hp-bar"></div></div>
-        <div class="field-hp-num" id="mg-opp-hp">20</div>
-      </div>
-    </div>
-
-    <!-- ダメージプール（中央） -->
-    <div class="dmg-pool" id="mg-dmg-pool">
-      <div class="dmg-pool-inner" id="mg-dmg-inner">
-        <!-- 上エリア（相手側） -->
-        <div class="dmg-bombs-top" id="mg-bombs-top"></div>
-        <!-- 中央：カウントダウン or ⚔ -->
-        <div class="dmg-pool-center">
-          <div class="dmg-pool-icon" id="mg-dmg-icon">⚔</div>
-          <div class="dmg-countdown" id="mg-dmg-countdown"></div>
-        </div>
-        <!-- 下エリア（自分側） -->
-        <div class="dmg-bombs-bot" id="mg-bombs-bot"></div>
-      </div>
-    </div>
-
-    <!-- 自分フィールド（下） -->
-    <div class="field" id="mg-field-me">
-      <div class="field-hp-row">
-        <div class="field-hp-bar-bg"><div class="field-hp-bar-fill" id="mg-my-hp-bar"></div></div>
-        <div class="field-hp-num" id="mg-my-hp">20</div>
-      </div>
-      <div class="field-header" style="margin-top:6px;margin-bottom:0;">
-        <span class="field-name" id="mg-my-name">あなた</span>
-        <div class="field-stats">
-          <span class="field-stat"><span class="field-stat-label">正解</span><span class="field-stat-val" id="mg-cor">0</span></span>
-          <span class="field-stat"><span class="field-stat-label">コンボ</span><span class="field-stat-val" id="mg-combo">0</span></span>
-          <span class="field-stat"><span class="field-stat-label">スキップ</span><span class="field-stat-val" id="mg-skip">-</span></span>
-        </div>
-      </div>
-    </div>
-
-    <!-- 問題エリア -->
-    <div class="progress-bar" style="margin-top:6px;"><div class="progress-fill" id="mg-prog"></div></div>
-    <div class="question-card">
-      <div class="question-label">化学式はどれ？</div>
-      <div class="question-text" id="mg-name"></div>
-      <div class="bonus-msg" id="mg-bonus"></div>
-    </div>
-    <div class="choices-grid" id="mg-choices"></div>
-    <div class="action-row">
-      <button class="btn btn--skip" id="mg-skip-btn" onclick="multiSkip()">スキップ</button>
-      <button class="btn btn--end" onclick="multiEnd()">終了</button>
-    </div>
-  </div>
-
-  <!-- MULTI RESULT -->
-  <div id="screen-multi-result" class="screen">
-    <div class="result-hero">
-      <div class="result-medal" id="mr-medal"></div>
-      <div class="result-title" id="mr-title"></div>
-      <div class="result-sub" id="mr-sub"></div>
-    </div>
-    <div class="result-stats" style="grid-template-columns:repeat(4,1fr);">
-      <div class="stat"><div class="stat-label">正解数</div><div class="stat-value" id="mr-cor"></div></div>
-      <div class="stat"><div class="stat-label">ミス数</div><div class="stat-value" style="color:var(--red);" id="mr-miss"></div></div>
-      <div class="stat"><div class="stat-label">正答率</div><div class="stat-value" id="mr-rate"></div></div>
-      <div class="stat"><div class="stat-label">最高コンボ</div><div class="stat-value" id="mr-mc"></div></div>
-    </div>
-    <div class="btn-row">
-      <button class="btn btn--primary" onclick="rematch()">再戦（部屋継続）</button>
-      <button class="btn" onclick="showS('mode')">トップへ</button>
-    </div>
-  </div>
-
 </div>
 
-<div class="footer">
-  © 2026 化学式マスター｜nachu19・N<br>
-  個人・学習目的での利用はご自由にどうぞ。再配布・商用利用はご遠慮ください。
+<!-- 役成立モーダル -->
+<div class="modal-overlay" id="roleModal">
+  <div class="modal">
+    <h2 id="roleModalTitle">役が成立</h2>
+    <p id="roleModalSubtitle" style="color: var(--gold); font-size: 0.85rem; letter-spacing: 0.1em;"></p>
+    <div class="modal-roles" id="roleModalRoles"></div>
+    <div class="modal-buttons">
+      <button class="primary" id="roleModalAgariBtn">上がる</button>
+      <button id="roleModalKoikoiBtn">こいこい</button>
+    </div>
+  </div>
 </div>
 
-<!-- Firebase -->
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getDatabase, ref, set, get, onValue, update, remove } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
-const firebaseConfig = {
-  apiKey: "AIzaSyC0xwTlnAmvoezp5WpqcY5ihUbatYloxUE",
-  authDomain: "redoxgame1-b5bf0.firebaseapp.com",
-  databaseURL: "https://redoxgame1-b5bf0-default-rtdb.firebaseio.com",
-  projectId: "redoxgame1-b5bf0",
-  storageBucket: "redoxgame1-b5bf0.firebasestorage.app",
-  messagingSenderId: "250365886256",
-  appId: "1:250365886256:web:4d937b82539209d8ca52f5"
-};
-const app = initializeApp(firebaseConfig);
-const db = getDatabase(app);
-window._fb = { db, ref, set, get, onValue, update, remove };
-// _fbセット完了を通知
-window.dispatchEvent(new Event('fbReady'));
-</script>
+<!-- ゲーム終了モーダル -->
+<div class="modal-overlay" id="endModal">
+  <div class="modal">
+    <h2 id="endTitle">勝負あり</h2>
+    <p id="endResult" style="color: var(--gold-bright); font-size: 1.1rem; margin: 16px 0;"></p>
+    <div id="endRoles" style="font-size: 0.85rem; color: var(--bg-card); margin: 16px 0;"></div>
+    <button class="primary" onclick="newGame()">もう一度</button>
+  </div>
+</div>
+
+<!-- スタート画面 -->
+<div class="modal-overlay active" id="startScreen" style="background: var(--bg-deep);">
+  <div style="text-align: center; max-width: 500px; width: 90%;">
+    <div style="font-family: 'Shippori Mincho', serif; font-size: 2.5rem; color: var(--gold-bright); letter-spacing: 0.3em; margin-bottom: 8px; font-weight: 700;">
+      金 屬 イオン
+    </div>
+    <div style="font-family: 'Shippori Mincho', serif; font-size: 2rem; color: var(--vermilion); letter-spacing: 0.3em; margin-bottom: 24px;">
+      こ い こ い
+    </div>
+    <div style="font-family: 'JetBrains Mono', monospace; font-size: 0.7rem; color: var(--gold); letter-spacing: 0.3em; opacity: 0.7; margin-bottom: 32px;">
+      METAL ION KOI-KOI
+    </div>
+    
+    <div style="margin-bottom: 24px;">
+      <div style="font-size: 0.8rem; color: var(--gold); letter-spacing: 0.2em; margin-bottom: 8px;">ラウンド数</div>
+      <div id="roundSelector" style="display: flex; gap: 6px; justify-content: center; flex-wrap: wrap;">
+        <button class="round-btn" data-rounds="1" onclick="selectRounds(1)">1</button>
+        <button class="round-btn" data-rounds="2" onclick="selectRounds(2)">2</button>
+        <button class="round-btn selected" data-rounds="3" onclick="selectRounds(3)">3</button>
+        <button class="round-btn" data-rounds="4" onclick="selectRounds(4)">4</button>
+        <button class="round-btn" data-rounds="5" onclick="selectRounds(5)">5</button>
+        <button class="round-btn" data-rounds="6" onclick="selectRounds(6)">6</button>
+        <button class="round-btn" data-rounds="7" onclick="selectRounds(7)">7</button>
+      </div>
+    </div>
+    
+    <div style="display: flex; flex-direction: column; gap: 12px; max-width: 320px; margin: 0 auto;">
+      <button class="primary" style="padding: 16px; font-size: 1rem; letter-spacing: 0.2em;" onclick="startGame('pvp')">
+        2人対戦（同じ画面）
+      </button>
+      <button class="primary" style="padding: 16px; font-size: 1rem; letter-spacing: 0.2em; background: var(--moss); border-color: var(--moss);" onclick="startGame('cpu')">
+        CPU対戦
+      </button>
+      <button style="padding: 16px; font-size: 1rem; letter-spacing: 0.2em;" disabled title="今後実装予定">
+        オンライン対戦（準備中）
+      </button>
+    </div>
+    <div style="margin-top: 24px;">
+      <button onclick="toggleHelp()" style="font-size: 0.85rem;">遊び方</button>
+    </div>
+  </div>
+</div>
+
+<div class="app">
+  <header>
+    <h1>金 屬 イオン <span class="accent">こいこい</span></h1>
+    <div class="subtitle">METAL ION KOI-KOI · v2 · SLOT EDITION</div>
+    <div id="roundIndicator" style="font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; color: var(--vermilion); letter-spacing: 0.2em; margin-top: 6px;"></div>
+  </header>
+
+  <main>
+    <!-- 相手 (上) -->
+    <section class="player-area" id="opponentArea">
+      <div class="player-header">
+        <span id="opponentName">相手</span>
+        <span class="score-badge">得点 <span id="opponentScore">0</span></span>
+      </div>
+      <div class="player-body">
+        <div>
+          <div class="section-label">手札（裏）</div>
+          <div class="cards opponent-hand" id="opponentHand"></div>
+        </div>
+        <div>
+          <div class="section-label">役スロット</div>
+          <div class="slots-area" id="opponentSlots"></div>
+        </div>
+        <div>
+          <div class="section-label">保留札（ペンディング）</div>
+          <div class="cards cards-pending" id="opponentPending"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Field -->
+    <section class="field-area">
+      <div class="field-info">
+        <span>場札 <span id="fieldCount">0</span></span>
+        <span>山札 <span id="deckCount">0</span></span>
+      </div>
+      <div class="cards" id="fieldCards" style="justify-content: center; min-height: 78px;"></div>
+      <div style="display: flex; justify-content: center; align-items: center; gap: 16px; margin-top: 10px;">
+        <div class="deck-stack" id="deckArea">
+          <div class="card card-back"></div>
+          <div class="deck-count" id="deckLabel">山札</div>
+        </div>
+        <div class="drawn-area">
+          <div class="drawn-label">めくり札</div>
+          <div class="drawn-slot" id="drawnSlot"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 自分 (下) -->
+    <section class="player-area active" id="selfArea">
+      <div class="player-header">
+        <span id="selfName">自分</span>
+        <span class="score-badge">得点 <span id="selfScore">0</span></span>
+      </div>
+      <div class="player-body">
+        <div>
+          <div class="section-label">手札</div>
+          <div class="cards" id="selfHand"></div>
+        </div>
+        <div>
+          <div class="section-label">役スロット</div>
+          <div class="slots-area" id="selfSlots"></div>
+        </div>
+        <div>
+          <div class="section-label">保留札（ペンディング）</div>
+          <div class="cards cards-pending" id="selfPending"></div>
+        </div>
+      </div>
+    </section>
+
+    <div class="action-bar" id="actionBar"></div>
+    <div class="message-log" id="messageLog">ゲームを開始します。</div>
+
+    <div class="controls">
+      <button onclick="backToMenu()" class="danger">メニューに戻る</button>
+      <button onclick="newGame()">新しいゲーム</button>
+      <button onclick="toggleRoleList()">役一覧</button>
+      <button onclick="toggleHelp()">遊び方</button>
+      <button onclick="switchViewpoint()" id="viewpointBtn" style="border-color: var(--vermilion); color: var(--vermilion);">視点切替（テスト用）</button>
+    </div>
+  </main>
+
+  <aside id="sidebar">
+    <h2>役 一 覧</h2>
+    <div class="role-list" id="roleList"></div>
+    <div style="margin-top: 16px; padding-top: 12px; border-top: 1px solid rgba(201, 169, 97, 0.3);">
+      <div style="font-size: 0.75rem; letter-spacing: 0.2em; color: var(--gold); margin-bottom: 6px;">価数の凡例</div>
+      <div class="legend">
+        <div class="legend-item"><span class="legend-swatch" style="background: var(--plus1);"></span>+1</div>
+        <div class="legend-item"><span class="legend-swatch" style="background: var(--typical);"></span>+2典型</div>
+        <div class="legend-item"><span class="legend-swatch" style="background: var(--transition);"></span>+2遷移</div>
+        <div class="legend-item"><span class="legend-swatch" style="background: var(--plus3);"></span>+3</div>
+        <div class="legend-item"><span class="legend-swatch" style="background: var(--plus4);"></span>+4</div>
+      </div>
+    </div>
+  </aside>
+</div>
 
 <script>
-const OTHER=[
-  {name:'一酸化炭素',ans:'CO',type:'other'},{name:'二酸化炭素',ans:'CO2',type:'other'},
-  {name:'二酸化硫黄',ans:'SO2',type:'other'},{name:'三酸化硫黄',ans:'SO3',type:'other'},
-  {name:'一酸化窒素',ans:'NO',type:'other'},{name:'二酸化窒素',ans:'NO2',type:'other'},
-  {name:'四酸化二窒素',ans:'N2O4',type:'other'},{name:'二酸化ケイ素',ans:'SiO2',type:'other'},
-  {name:'十酸化四リン',ans:'P4O10',type:'other'},{name:'アンモニア',ans:'NH3',type:'other'},
-  {name:'過酸化水素',ans:'H2O2',type:'other'},{name:'メタン',ans:'CH4',type:'other'},
-  {name:'酢酸',ans:'CH3COOH',type:'other'},{name:'リン酸',ans:'H3PO4',type:'other'},
-  {name:'亜硫酸',ans:'H2SO3',type:'other'},{name:'亜硝酸',ans:'HNO2',type:'other'},
-  {name:'炭酸水素ナトリウム',ans:'NaHCO3',type:'other'},{name:'硫酸水素ナトリウム',ans:'NaHSO4',type:'other'},
-  {name:'炭酸リチウム',ans:'Li2CO3',type:'other'},{name:'酸化銅(Ⅰ)',ans:'Cu2O',type:'other'},
-  {name:'過マンガン酸カリウム',ans:'KMnO4',type:'other'},{name:'二クロム酸カリウム',ans:'K2Cr2O7',type:'other'},
-  {name:'クロム酸カリウム',ans:'K2CrO4',type:'other'},{name:'酸化鉛(Ⅳ)',ans:'PbO2',type:'other'},
-  {name:'亜硫酸ナトリウム',ans:'Na2SO3',type:'other'},{name:'亜硫酸水素ナトリウム',ans:'NaHSO3',type:'other'},
+// ============================================================
+// 元素データ
+// ============================================================
+const ELEMENTS = {
+  Li: { name: 'Li', valences: ['+1'], count: 3 },
+  Na: { name: 'Na', valences: ['+1'], count: 3 },
+  K:  { name: 'K',  valences: ['+1'], count: 3 },
+  Mg: { name: 'Mg', valences: ['+2典型'], count: 3 },
+  Ca: { name: 'Ca', valences: ['+2典型'], count: 3 },
+  Ba: { name: 'Ba', valences: ['+2典型'], count: 3 },
+  Al: { name: 'Al', valences: ['+3'], count: 4 },
+  Zn: { name: 'Zn', valences: ['+2典型'], count: 4 },
+  Sn: { name: 'Sn', valences: ['+2典型', '+4'], count: 4 },
+  Pb: { name: 'Pb', valences: ['+2典型', '+4'], count: 4 },
+  Fe: { name: 'Fe', valences: ['+2遷移', '+3'], count: 4 },
+  Cu: { name: 'Cu', valences: ['+1', '+2遷移'], count: 4 },
+  Cr: { name: 'Cr', valences: ['+3'], count: 3 },
+  Ni: { name: 'Ni', valences: ['+2遷移'], count: 2 },
+  Ag: { name: 'Ag', valences: ['+1'], count: 4 },
+  Au: { name: 'Au', valences: ['+1', '+3'], count: 2 },
+  Pt: { name: 'Pt', valences: ['+4'], count: 2 },
+};
+
+// ============================================================
+// 役の定義
+// ============================================================
+// extensible: 炎色反応のみ true（3つで成立、6つまで拡張可、最大時に得点アップ）
+const ROLES = [
+  { id: 'enkabutsu',     name: '塩化物沈殿',        elements: ['Ag','Pb'], points: 2, formula: 'Ag + Pb' },
+  { id: 'alkali',        name: 'アルカリ金属',      elements: ['Li','Na','K'], points: 5, formula: 'Li + Na + K' },
+  { id: 'alkali_earth',  name: 'アルカリ土類金属',  elements: ['Mg','Ca','Ba'], points: 5, formula: 'Mg + Ca + Ba' },
+  { id: 'sulfate',       name: '硫酸塩沈殿',        elements: ['Ca','Ba','Pb'], points: 5, formula: 'Ca + Ba + Pb' },
+  { id: 'sulfide_acid',  name: '硫化物沈殿(酸性)',  elements: ['Cu','Pb','Ag'], points: 5, formula: 'Cu + Pb + Ag' },
+  { id: 'tin_zinc_iron', name: 'トタンとブリキ',    elements: ['Fe','Zn','Sn'], points: 5, formula: 'Fe + Zn + Sn' },
+  { id: 'stainless',     name: 'ステンレス',        elements: ['Fe','Cr','Ni'], points: 5, formula: 'Fe + Cr + Ni' },
+  { id: 'duralumin',     name: 'ジュラルミン',      elements: ['Al','Cu','Mg'], points: 5, formula: 'Al + Cu + Mg' },
+  { id: 'fudoutai',      name: '不動態',            elements: ['Fe','Al','Cr'], points: 5, formula: 'Fe + Al + Cr' },
+  { id: 'ammonia',       name: 'アンモニア錯体',    elements: ['Cu','Ag','Zn'], points: 5, formula: 'Cu + Ag + Zn' },
+  { id: 'flame',         name: '炎色反応',          elements: ['Li','Na','K','Cu','Ca','Ba'], points: 5, formula: '3つで5点・全6つで10点', extensible: true, completePoints: 10 },
+  { id: 'copper_alloy',  name: '銅合金',            elements: ['Cu','Zn','Sn','Ni'], points: 7, formula: 'Cu + Zn + Sn + Ni' },
+  { id: 'amphoteric',    name: '両性元素',          elements: ['Al','Zn','Sn','Pb'], points: 7, formula: 'Al + Zn + Sn + Pb' },
+  { id: 'noble',         name: '貴金属',            elements: ['Au','Pt','Ag'], points: 5, formula: 'Au + Pt + Ag' },
 ];
-const ION={
-  easy:[
-    {name:'フッ化水素',c:'H',cv:1,a:'F',av:1,ans:'HF'},{name:'塩化水素',c:'H',cv:1,a:'Cl',av:1,ans:'HCl'},
-    {name:'臭化水素',c:'H',cv:1,a:'Br',av:1,ans:'HBr'},{name:'ヨウ化水素',c:'H',cv:1,a:'I',av:1,ans:'HI'},
-    {name:'フッ化ナトリウム',c:'Na',cv:1,a:'F',av:1,ans:'NaF'},{name:'塩化ナトリウム',c:'Na',cv:1,a:'Cl',av:1,ans:'NaCl'},
-    {name:'臭化ナトリウム',c:'Na',cv:1,a:'Br',av:1,ans:'NaBr'},{name:'ヨウ化ナトリウム',c:'Na',cv:1,a:'I',av:1,ans:'NaI'},
-    {name:'水酸化ナトリウム',c:'Na',cv:1,a:'OH',av:1,ans:'NaOH'},{name:'硫化ナトリウム',c:'Na',cv:1,a:'S',av:2,ans:'Na2S'},
-    {name:'塩化カリウム',c:'K',cv:1,a:'Cl',av:1,ans:'KCl'},{name:'臭化カリウム',c:'K',cv:1,a:'Br',av:1,ans:'KBr'},
-    {name:'ヨウ化カリウム',c:'K',cv:1,a:'I',av:1,ans:'KI'},{name:'フッ化カリウム',c:'K',cv:1,a:'F',av:1,ans:'KF'},
-    {name:'水酸化カリウム',c:'K',cv:1,a:'OH',av:1,ans:'KOH'},{name:'硫化カリウム',c:'K',cv:1,a:'S',av:2,ans:'K2S'},
-    {name:'塩化銀',c:'Ag',cv:1,a:'Cl',av:1,ans:'AgCl'},{name:'臭化銀',c:'Ag',cv:1,a:'Br',av:1,ans:'AgBr'},
-    {name:'ヨウ化銀',c:'Ag',cv:1,a:'I',av:1,ans:'AgI'},{name:'フッ化銀',c:'Ag',cv:1,a:'F',av:1,ans:'AgF'},
-  ],
-  normal:[
-    {name:'塩化カルシウム',c:'Ca',cv:2,a:'Cl',av:1,ans:'CaCl2'},{name:'塩化マグネシウム',c:'Mg',cv:2,a:'Cl',av:1,ans:'MgCl2'},
-    {name:'塩化バリウム',c:'Ba',cv:2,a:'Cl',av:1,ans:'BaCl2'},{name:'塩化鉄(Ⅱ)',c:'Fe',cv:2,a:'Cl',av:1,ans:'FeCl2'},
-    {name:'塩化鉄(Ⅲ)',c:'Fe',cv:3,a:'Cl',av:1,ans:'FeCl3'},{name:'塩化銅(Ⅱ)',c:'Cu',cv:2,a:'Cl',av:1,ans:'CuCl2'},
-    {name:'塩化アルミニウム',c:'Al',cv:3,a:'Cl',av:1,ans:'AlCl3'},{name:'酸化カルシウム',c:'Ca',cv:2,a:'O',av:2,ans:'CaO'},
-    {name:'酸化マグネシウム',c:'Mg',cv:2,a:'O',av:2,ans:'MgO'},{name:'酸化鉄(Ⅱ)',c:'Fe',cv:2,a:'O',av:2,ans:'FeO'},
-    {name:'酸化銅(Ⅱ)',c:'Cu',cv:2,a:'O',av:2,ans:'CuO'},{name:'酸化亜鉛',c:'Zn',cv:2,a:'O',av:2,ans:'ZnO'},
-    {name:'酸化アルミニウム',c:'Al',cv:3,a:'O',av:2,ans:'Al2O3'},{name:'酸化鉄(Ⅲ)',c:'Fe',cv:3,a:'O',av:2,ans:'Fe2O3'},
-    {name:'水酸化カルシウム',c:'Ca',cv:2,a:'OH',av:1,ans:'Ca(OH)2'},{name:'水酸化マグネシウム',c:'Mg',cv:2,a:'OH',av:1,ans:'Mg(OH)2'},
-    {name:'水酸化銅(Ⅱ)',c:'Cu',cv:2,a:'OH',av:1,ans:'Cu(OH)2'},{name:'水酸化アルミニウム',c:'Al',cv:3,a:'OH',av:1,ans:'Al(OH)3'},
-    {name:'硫化亜鉛',c:'Zn',cv:2,a:'S',av:2,ans:'ZnS'},{name:'硫化鉛(Ⅱ)',c:'Pb',cv:2,a:'S',av:2,ans:'PbS'},
-  ],
-  hard:[
-    {name:'硝酸ナトリウム',c:'Na',cv:1,a:'NO3',av:1,ans:'NaNO3'},{name:'硝酸カルシウム',c:'Ca',cv:2,a:'NO3',av:1,ans:'Ca(NO3)2'},
-    {name:'硝酸カリウム',c:'K',cv:1,a:'NO3',av:1,ans:'KNO3'},{name:'硝酸銀',c:'Ag',cv:1,a:'NO3',av:1,ans:'AgNO3'},
-    {name:'硫酸ナトリウム',c:'Na',cv:1,a:'SO4',av:2,ans:'Na2SO4'},{name:'硫酸カルシウム',c:'Ca',cv:2,a:'SO4',av:2,ans:'CaSO4'},
-    {name:'硫酸バリウム',c:'Ba',cv:2,a:'SO4',av:2,ans:'BaSO4'},{name:'硫酸マグネシウム',c:'Mg',cv:2,a:'SO4',av:2,ans:'MgSO4'},
-    {name:'硫酸銅(Ⅱ)',c:'Cu',cv:2,a:'SO4',av:2,ans:'CuSO4'},{name:'硫酸鉄(Ⅱ)',c:'Fe',cv:2,a:'SO4',av:2,ans:'FeSO4'},
-    {name:'硫酸鉄(Ⅲ)',c:'Fe',cv:3,a:'SO4',av:2,ans:'Fe2(SO4)3'},{name:'硫酸アルミニウム',c:'Al',cv:3,a:'SO4',av:2,ans:'Al2(SO4)3'},
-    {name:'硫酸鉛(Ⅱ)',c:'Pb',cv:2,a:'SO4',av:2,ans:'PbSO4'},{name:'炭酸ナトリウム',c:'Na',cv:1,a:'CO3',av:2,ans:'Na2CO3'},
-    {name:'炭酸カルシウム',c:'Ca',cv:2,a:'CO3',av:2,ans:'CaCO3'},{name:'炭酸マグネシウム',c:'Mg',cv:2,a:'CO3',av:2,ans:'MgCO3'},
-    {name:'塩化アンモニウム',c:'NH4',cv:1,a:'Cl',av:1,ans:'NH4Cl'},{name:'硫酸アンモニウム',c:'NH4',cv:1,a:'SO4',av:2,ans:'(NH4)2SO4'},
-    {name:'硝酸アンモニウム',c:'NH4',cv:1,a:'NO3',av:1,ans:'NH4NO3'},{name:'炭酸アンモニウム',c:'NH4',cv:1,a:'CO3',av:2,ans:'(NH4)2CO3'},
-  ],
-};
-ION.oni=ION.hard;
 
-function toSubHTML(f){return f.replace(/([0-9]+)/g,'<sub>$1</sub>');}
-function shuffle(a){const r=[...a];for(let i=r.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[r[i],r[j]]=[r[j],r[i]];}return r;}
-function gcd(a,b){return b===0?a:gcd(b,a%b);}
-function showS(n){
-  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
-  document.getElementById('screen-'+n).classList.add('active');
-  // result画面・ready画面以外に移動したらBGMを再開
-  if(!n.includes('result')&&!n.includes('ready')){
-    if(!BGM._audio||BGM._audio.paused){
-      BGM.play(document.body.className||'bg-default');
+const ROLE_BY_ID = {};
+ROLES.forEach(r => { ROLE_BY_ID[r.id] = r; });
+
+// 場札の補充ターゲット枚数と補充トリガー
+const FIELD_REFILL_TARGET = 8;
+const FIELD_REFILL_TRIGGER = 2;
+
+// こいこい1回ごとの上がり時ボーナス点
+const KOIKOI_BONUS_PER_COUNT = 3;
+
+// ============================================================
+// ゲーム状態
+// ============================================================
+let state = null;
+
+function createDeck() {
+  const deck = [];
+  let id = 0;
+  for (const [symbol, info] of Object.entries(ELEMENTS)) {
+    for (let i = 0; i < info.count; i++) {
+      deck.push({
+        id: id++,
+        symbol: symbol,
+        valences: [...info.valences],
+      });
     }
   }
-}
-function showPop(text){const el=document.createElement('div');el.className='bonus-pop';el.textContent=text;document.body.appendChild(el);setTimeout(()=>el.remove(),950);}
-function goMode(m){showS(m==='solo'?'solo-home':'multi-top');}
-function toggleRule(id){const el=document.getElementById(id);el.classList.toggle('open');}
-function toggleBgm(){
-  const nowMuted=BGM._muted;
-  BGM.setMute(!nowMuted);
-  document.getElementById('bgm-btn').textContent=!nowMuted?'🎵 音楽OFF':'🎵 音楽ON';
-  document.getElementById('bgm-btn').style.color=!nowMuted?'var(--red)':'var(--text2)';
-}
-function toggleSfx(){
-  const muted=SFX.toggleMute();
-  document.getElementById('sfx-btn').textContent=muted?'🔊 効果音OFF':'🔊 効果音ON';
-  document.getElementById('sfx-btn').style.color=muted?'var(--red)':'var(--text2)';
+  return deck;
 }
 
-function goSoloReady(){
-  S.pendingName=(document.getElementById('solo-name').value.trim()||'プレイヤー').slice(0,10);
-  document.getElementById('solo-ready-title').textContent='準備はいい？';
-  document.getElementById('solo-ready-msg').textContent='ボタンを押したらカウントダウン開始！';
-  document.getElementById('solo-ready-btn').style.display='';
-  document.getElementById('solo-ready-btn').disabled=false;
-  document.getElementById('solo-ready-countdown').style.display='none';
-  BGM.stop(); // Ready画面でBGM停止
-  showS('solo-ready');
-}
-
-function pressSoloReady(){
-  document.getElementById('solo-ready-btn').style.display='none';
-  document.getElementById('solo-ready-countdown').style.display='block';
-  const nums=['3','2','1','Go!'];let i=0;
-  const el=document.getElementById('solo-countdown-num');
-  el.textContent=nums[0];
-  SFX.countdown(false);
-  const iv=setInterval(()=>{
-    i++;
-    if(i<nums.length){
-      el.textContent=nums[i];
-      el.style.animation='none';void el.offsetWidth;
-      el.style.animation='countPop 0.8s ease';
-      SFX.countdown(nums[i]==='Go!');
-    } else {
-      clearInterval(iv);
-      startSolo();
-    }
-  },900);
-}
-
-// ── ランキング ──
-const DIFF_LABEL={easy:'かんたん',normal:'ふつう',hard:'むずかしい',oni:'鬼'};
-let currentRankDiff='normal';
-let rankingFrom='mode'; // 戻り先
-
-function rankRef(diff){return fb().ref(fb().db,'ranking/'+diff);}
-
-async function showRanking(diff){
-  currentRankDiff=diff||'normal';
-  // 戻り先を記憶
-  const cur=document.querySelector('.screen.active');
-  rankingFrom=cur?cur.id.replace('screen-',''):'mode';
-  document.getElementById('ranking-back-btn').onclick=()=>showS(rankingFrom);
-  // タブ選択状態を更新
-  document.querySelectorAll('.rank-tab').forEach(t=>{
-    t.classList.toggle('sel',t.dataset.rd===currentRankDiff);
-  });
-  showS('ranking');
-  await loadRanking(currentRankDiff);
-}
-
-async function switchRankTab(el,diff){
-  currentRankDiff=diff;
-  document.querySelectorAll('.rank-tab').forEach(t=>t.classList.remove('sel'));
-  el.classList.add('sel');
-  await loadRanking(diff);
-}
-
-async function loadRanking(diff){
-  const el=document.getElementById('ranking-list');
-  el.innerHTML='<div style="text-align:center;color:var(--text3);padding:2rem;font-size:14px;">読み込み中…</div>';
-  try{
-    const snap=await fb().get(rankRef(diff));
-    if(!snap.exists()){el.innerHTML='<div style="text-align:center;color:var(--text3);padding:2rem;font-size:14px;">まだ記録がありません</div>';return;}
-    // オブジェクトを配列に変換してスコア順ソート
-    const entries=Object.values(snap.val()).sort((a,b)=>b.score-a.score).slice(0,10);
-    const medals=['🥇','🥈','🥉'];
-    let h='';
-    entries.forEach((e,i)=>{
-      const numClass=i===0?'gold':i===1?'silver':i===2?'bronze':'';
-      const num=i<3?medals[i]:(i+1);
-      h+=`<div class="rank-row">
-        <div class="rank-num ${numClass}">${num}</div>
-        <div class="rank-detail">${e.correct}問正解 (${e.rate}%) ｜ ${e.date}</div>
-        <div class="rank-score">${e.score.toLocaleString()}<span style="font-size:11px;color:var(--text3);font-weight:400;"> pts</span></div>
-      </div>`;
-    });
-    el.innerHTML=h;
-  }catch(e){el.innerHTML='<div style="text-align:center;color:var(--red);padding:2rem;font-size:14px;">読み込みに失敗しました</div>';}
-}
-
-function showRegisterModal(){
-  document.getElementById('reg-score').textContent=S.score.toLocaleString()+' pts';
-  document.getElementById('reg-diff-label').textContent=DIFF_LABEL[S.diff]||'ふつう';
-  document.getElementById('reg-msg').textContent='';
-  document.getElementById('register-modal').style.display='flex';
-}
-
-function closeRegisterModal(){
-  document.getElementById('register-modal').style.display='none';
-}
-
-async function submitRanking(){
-  const msgEl=document.getElementById('reg-msg');
-  msgEl.textContent='登録中…';msgEl.style.color='var(--text2)';
-  try{
-    const rate=S.answered>0?Math.round(S.correct/S.answered*100):0;
-    const entry={score:S.score,correct:S.correct,rate,date:new Date().toLocaleDateString('ja-JP')};
-    const newRef=fb().ref(fb().db,'ranking/'+S.diff+'/'+Date.now()+'_'+Math.random().toString(36).slice(2,7));
-    await fb().set(newRef,entry);
-    const snap=await fb().get(rankRef(S.diff));
-    if(snap.exists()){
-      const all=Object.entries(snap.val()).sort((a,b)=>b[1].score-a[1].score);
-      if(all.length>10){
-        for(const [key] of all.slice(10)){
-          await fb().remove(fb().ref(fb().db,'ranking/'+S.diff+'/'+key));
-        }
-      }
-    }
-    msgEl.textContent='✅ 登録しました！';msgEl.style.color='var(--green)';
-    setTimeout(()=>{closeRegisterModal();showRanking(S.diff);},1200);
-  }catch(e){
-    msgEl.textContent='❌ 登録に失敗しました';msgEl.style.color='var(--red)';
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
   }
+  return a;
 }
 
-// ── BGMシステム ──
-const BGM = {
-  _audio: null,
-  _current: null,
-  _muted: true, // デフォルトOFF
-  _map: {
-    'bg-default': 'defalt.mp3',
-    'bg-spring':  'spr.mp3',
-    'bg-summer':  'sum.mp3',
-    'bg-fall':    'fall.mp3',
-    'bg-winter':  'wint.mp3',
-  },
-  play(season){
-    const file = this._map[season];
-    if(!file){ this.stop(); return; }
-    if(this._current === file && this._audio && !this._audio.paused) return;
-    this.stop();
-    this._current = file;
-    const a = new Audio(file);
-    a.loop = true;
-    a.volume = 0.4;
-    a.muted = this._muted;
-    this._audio = a;
-    a.play().catch(()=>{
-      // 自動再生失敗時は次のクリックで再試行
-      const retry=()=>{ if(this._audio===a){ a.play().catch(()=>{}); } };
-      document.addEventListener('click', retry, {once:true});
-    });
-  },
-  stop(){
-    if(this._audio){ this._audio.pause(); this._audio.src=''; this._audio=null; }
-    this._current = null;
-  },
-  setMute(muted){
-    this._muted = muted;
-    if(this._audio) this._audio.muted = muted;
-  },
-};
-
-function setBg(season){
-  document.body.className='bg-'+season;
-  document.querySelectorAll('.bg-btn').forEach(b=>b.classList.remove('sel'));
-  const map={default:'🌙 デフォルト',spring:'🌸 春',summer:'🌻 夏',fall:'🍂 秋',winter:'❄️ 冬'};
-  document.querySelectorAll('.bg-btn').forEach(b=>{if(b.textContent.trim()===map[season])b.classList.add('sel');});
-  try{localStorage.setItem('bgSeason',season);}catch(e){}
-  BGM.play('bg-'+season);
+function newPlayer() {
+  return {
+    hand: [],
+    pending: [],     // 保留札（card オブジェクト配列）
+    slots: {},       // { roleId: { elementSymbol: cardObj or null, ... } }
+    score: 0,
+    completedRoles: [], // 上がりorこいこいで申告した役のID
+    koikoi: false,
+    koikoiCount: 0,  // こいこい宣言した回数（上がり時のボーナス計算用）
+  };
 }
-// 起動時に前回の背景を復元
-(function(){
-  try{const s=localStorage.getItem('bgSeason');if(s)setBg(s);else setBg('default');}
-  catch(e){setBg('default');}
-})();
 
-let _queue=[];
-function makeQueue(diff){const ik=diff==='oni'?'hard':diff;return shuffle([...ION[ik],...shuffle(OTHER).slice(0,24)]);}
-function nextQ(diff){if(!_queue.length)_queue=makeQueue(diff);return _queue.shift();}
-function genWC(q){const{c,cv,a,av}=q,g=gcd(cv,av),cNc=av/g,cNa=cv/g;return[[1,1],[1,2],[1,3],[2,1],[2,2],[2,3],[3,1],[3,2],[3,3]].filter(([nc,na])=>!(nc===cNc&&na===cNa)).slice(0,4).map(([nc,na])=>{const pA=na>1&&a.length>2,pC=nc>1&&c.length>2;return(pC?'('+c+')'+nc:c+(nc===1?'':nc))+(pA?'('+a+')'+na:a+(na===1?'':na));});}
-function makeChoices(q,diff){const ik=diff==='oni'?'hard':diff;const correct=q.ans,used=new Set([correct]);const d=[];if(q.type==='other'){for(const p of shuffle(OTHER)){if(!used.has(p.ans)&&d.length<3){used.add(p.ans);d.push(p.ans);}}}else{const ip=ION[ik];for(const p of shuffle(ip.filter(p=>p.c===q.c&&p.ans!==correct))){if(!used.has(p.ans)&&d.length<2){used.add(p.ans);d.push(p.ans);}}for(const p of shuffle(ip.filter(p=>p.a===q.a&&p.ans!==correct))){if(!used.has(p.ans)&&d.length<3){used.add(p.ans);d.push(p.ans);}}if(d.length<3){for(const w of genWC(q)){if(!used.has(w)&&d.length<3){used.add(w);d.push(w);}}}for(const p of shuffle([...ip,...OTHER])){if(d.length>=3)break;if(!used.has(p.ans)){used.add(p.ans);d.push(p.ans);}}}return shuffle([correct,...d.slice(0,3)]);}
+// グローバル：自分がプレイヤー1か2か（オンライン化前のテスト用、デフォルト0）
+// 実際のオンライン対戦では、ルーム参加時に決まる
+let myPlayerIndex = 0;
 
-// ── 効果音システム ──
-const SFX = {
-  _ctx: null,
-  _muted: true, // デフォルトOFF
-  ctx(){
-    if(!this._ctx) this._ctx = new (window.AudioContext||window.webkitAudioContext)();
-    return this._ctx;
-  },
-  play(fn){ if(this._muted) return; try{ fn(this.ctx()); }catch(e){} },
+// ゲームモード： 'pvp' | 'cpu' | 'online'
+let gameMode = 'pvp';
 
-  // 正解：明るい上昇音
-  correct(){ this.play(ctx=>{
-    const o=ctx.createOscillator(), g=ctx.createGain();
-    o.connect(g); g.connect(ctx.destination);
-    o.type='sine'; o.frequency.setValueAtTime(660,ctx.currentTime);
-    o.frequency.linearRampToValueAtTime(880,ctx.currentTime+0.12);
-    g.gain.setValueAtTime(0.25,ctx.currentTime);
-    g.gain.linearRampToValueAtTime(0,ctx.currentTime+0.18);
-    o.start(); o.stop(ctx.currentTime+0.18);
-  });},
+// ラウンド設定
+let totalRounds = 3;        // 全ラウンド数（メニューで選ぶ）
+let currentRound = 1;       // 現在何ラウンド目か
+let cumulativeScores = [0, 0]; // 累計得点
 
-  // 不正解：低い下降音
-  wrong(){ this.play(ctx=>{
-    const o=ctx.createOscillator(), g=ctx.createGain();
-    o.connect(g); g.connect(ctx.destination);
-    o.type='sawtooth'; o.frequency.setValueAtTime(300,ctx.currentTime);
-    o.frequency.linearRampToValueAtTime(150,ctx.currentTime+0.25);
-    g.gain.setValueAtTime(0.2,ctx.currentTime);
-    g.gain.linearRampToValueAtTime(0,ctx.currentTime+0.25);
-    o.start(); o.stop(ctx.currentTime+0.25);
-  });},
-
-  // ダメージ与える：軽い爆発音
-  dmgOut(){ this.play(ctx=>{
-    const buf=ctx.createBuffer(1,ctx.sampleRate*0.3,ctx.sampleRate);
-    const d=buf.getChannelData(0);
-    for(let i=0;i<d.length;i++) d[i]=(Math.random()*2-1)*Math.pow(1-i/d.length,2);
-    const src=ctx.createBufferSource(), g=ctx.createGain();
-    const filter=ctx.createBiquadFilter();
-    filter.type='bandpass'; filter.frequency.value=600;
-    src.buffer=buf; src.connect(filter); filter.connect(g); g.connect(ctx.destination);
-    g.gain.setValueAtTime(0.4,ctx.currentTime);
-    g.gain.linearRampToValueAtTime(0,ctx.currentTime+0.3);
-    src.start();
-  });},
-
-  // ダメージ受ける：重めの爆発音
-  dmgIn(){ this.play(ctx=>{
-    const buf=ctx.createBuffer(1,ctx.sampleRate*0.4,ctx.sampleRate);
-    const d=buf.getChannelData(0);
-    for(let i=0;i<d.length;i++) d[i]=(Math.random()*2-1)*Math.pow(1-i/d.length,1.5);
-    const src=ctx.createBufferSource(), g=ctx.createGain();
-    const filter=ctx.createBiquadFilter();
-    filter.type='lowpass'; filter.frequency.value=300;
-    src.buffer=buf; src.connect(filter); filter.connect(g); g.connect(ctx.destination);
-    g.gain.setValueAtTime(0.5,ctx.currentTime);
-    g.gain.linearRampToValueAtTime(0,ctx.currentTime+0.4);
-    src.start();
-  });},
-
-  // カウントダウン：高めの電子音
-  countdown(high=false){ this.play(ctx=>{
-    const o=ctx.createOscillator(), g=ctx.createGain();
-    o.connect(g); g.connect(ctx.destination);
-    o.type='square';
-    o.frequency.value=high?1200:1000;
-    g.gain.setValueAtTime(0.15,ctx.currentTime);
-    g.gain.linearRampToValueAtTime(0,ctx.currentTime+0.08);
-    o.start(); o.stop(ctx.currentTime+0.08);
-  });},
-
-  // 勝利：明るいファンファーレ
-  win(){ this.play(ctx=>{
-    [[523,0],[659,0.15],[784,0.3],[1047,0.45]].forEach(([freq,t])=>{
-      const o=ctx.createOscillator(), g=ctx.createGain();
-      o.connect(g); g.connect(ctx.destination);
-      o.type='sine'; o.frequency.value=freq;
-      g.gain.setValueAtTime(0,ctx.currentTime+t);
-      g.gain.linearRampToValueAtTime(0.25,ctx.currentTime+t+0.05);
-      g.gain.linearRampToValueAtTime(0,ctx.currentTime+t+0.25);
-      o.start(ctx.currentTime+t); o.stop(ctx.currentTime+t+0.3);
-    });
-  });},
-
-  // 敗北：重い下降音
-  lose(){ this.play(ctx=>{
-    [[400,0],[300,0.2],[200,0.4],[150,0.6]].forEach(([freq,t])=>{
-      const o=ctx.createOscillator(), g=ctx.createGain();
-      o.connect(g); g.connect(ctx.destination);
-      o.type='sawtooth'; o.frequency.value=freq;
-      g.gain.setValueAtTime(0.15,ctx.currentTime+t);
-      g.gain.linearRampToValueAtTime(0,ctx.currentTime+t+0.18);
-      o.start(ctx.currentTime+t); o.stop(ctx.currentTime+t+0.2);
-    });
-  });},
-
-  // ミュート切り替え
-  toggleMute(){
-    this._muted=!this._muted;
-    return this._muted;
-  }
-};
-const SOLO_CFG={easy:{skipMax:Infinity,timeBonus:false,pts:80},normal:{skipMax:3,timeBonus:false,pts:120},hard:{skipMax:1,timeBonus:true,pts:160},oni:{skipMax:0,timeBonus:true,pts:200}};
-const SOLO_TIME=40;
-const S={pendingDiff:'normal'};
-const MAX_HP=20;
-const MULTI_SKIP={easy:Infinity,normal:3,hard:1,oni:0};
-const M={pendingDiff:'normal',pendingTime:90,pendingHP:20};
-
-document.querySelectorAll('[data-d]').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('[data-d]').forEach(x=>x.classList.remove('sel'));b.classList.add('sel');S.pendingDiff=b.dataset.d;}));
-document.querySelectorAll('[data-md]').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('[data-md]').forEach(x=>x.classList.remove('sel'));b.classList.add('sel');M.pendingDiff=b.dataset.md;}));
-document.querySelectorAll('[data-t]').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('[data-t]').forEach(x=>x.classList.remove('sel'));b.classList.add('sel');M.pendingTime=parseInt(b.dataset.t);}));
-document.querySelectorAll('[data-hp]').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('[data-hp]').forEach(x=>x.classList.remove('sel'));b.classList.add('sel');M.pendingHP=parseInt(b.dataset.hp);}));
-// CPU用ボタンリスナー
-const CPU={pendingDiff:'normal',pendingTime:90,pendingHP:20};
-document.querySelectorAll('[data-cd]').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('[data-cd]').forEach(x=>x.classList.remove('sel'));b.classList.add('sel');CPU.pendingDiff=b.dataset.cd;}));
-document.querySelectorAll('[data-ct]').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('[data-ct]').forEach(x=>x.classList.remove('sel'));b.classList.add('sel');CPU.pendingTime=parseInt(b.dataset.ct);}));
-document.querySelectorAll('[data-chp]').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('[data-chp]').forEach(x=>x.classList.remove('sel'));b.classList.add('sel');CPU.pendingHP=parseInt(b.dataset.chp);}));
-const CPU_CFG={
-  easy:  {acc:0.80,interval:5000},
-  normal:{acc:0.80,interval:4500},
-  hard:  {acc:0.90,interval:3500},
-  oni:   {acc:0.95,interval:2750},
-};
-
-function startSolo(){clearInterval(S.iv);_queue=[];S.diff=S.pendingDiff||'normal';S.name=(document.getElementById('solo-name').value.trim()||'プレイヤー').slice(0,10);S.cfg=SOLO_CFG[S.diff];S.score=0;S.correct=0;S.answered=0;S.combo=0;S.maxCombo=0;S.skips=S.cfg.skipMax;S.wrongs=[];S.timeLeft=SOLO_TIME;S.qAnswered=false;
-// ゲーム開始時にBGMを冒頭から再生
-BGM.stop();BGM.play(document.body.className||'bg-default');
-showS('solo-game');updateSoloSkipUI();soloLoadQ();soloStartTimer();}
-function soloStartTimer(){clearInterval(S.iv);S.iv=setInterval(()=>{S.timeLeft=Math.max(0,S.timeLeft-0.1);soloUpdateTimer();if(S.timeLeft<=0){clearInterval(S.iv);soloFinish();}},100);}
-function soloUpdateTimer(){const t=S.timeLeft,el=document.getElementById('sg-timer');const prev=S._prevTime||999;el.textContent=Math.ceil(t);el.className='stat-value';if(t<=5)el.classList.add('timer-danger');else if(t<=10)el.classList.add('timer-warn');if(t<=10&&t>0&&Math.ceil(t)!==Math.ceil(prev))SFX.countdown();S._prevTime=t;const pct=t/SOLO_TIME*100;const bar=document.getElementById('sg-prog');bar.style.width=pct+'%';bar.className='progress-fill'+(t<=5?' prog-danger':t<=10?' prog-warn':'');}
-function updateSoloSkipUI(){const btn=document.getElementById('sg-skip-btn');const sl=S.skips;if(S.cfg.skipMax===0){btn.style.display='none';return;}btn.style.display='';if(sl===Infinity){btn.textContent='スキップ';btn.disabled=false;}else if(sl>0){btn.textContent=`スキップ（残${sl}）`;btn.disabled=false;}else{btn.textContent='スキップ不可';btn.disabled=true;}}
-function soloLoadQ(){S.qAnswered=false;const q=nextQ(S.diff);S.currentQ=q;document.getElementById('sg-name').textContent=q.name;document.getElementById('sg-bonus').textContent='';const box=document.getElementById('sg-choices');box.innerHTML='';makeChoices(q,S.diff).forEach(ch=>{const b=document.createElement('button');b.className='choice-btn';b.innerHTML=toSubHTML(ch);b.dataset.ans=ch;b.onclick=()=>soloPick(b,ch,q);box.appendChild(b);});}
-function soloPick(btn,chosen,q){if(S.qAnswered)return;S.qAnswered=true;S.answered++;const ok=chosen===q.ans;document.querySelectorAll('#sg-choices .choice-btn').forEach(b=>{b.disabled=true;if(b.dataset.ans===q.ans)b.classList.add(ok?'correct':'reveal');});if(ok){btn.classList.add('correct');S.correct++;S.combo++;if(S.combo>S.maxCombo)S.maxCombo=S.combo;S.score+=S.cfg.pts+Math.min(S.combo-1,8)*10;SFX.correct();if(S.cfg.timeBonus&&S.combo>=5){const t=S.timeLeft;const bonus=t>=30?2.0:t>=15?1.5:1.0;S.timeLeft=Math.min(SOLO_TIME,S.timeLeft+bonus);showPop('+'+bonus.toFixed(1)+'s');document.getElementById('sg-bonus').textContent=`🔥 コンボ${S.combo}連！ +${bonus.toFixed(1)}秒`;}}else{btn.classList.add('wrong');S.combo=0;SFX.wrong();S.wrongs.push({q,chosen});}document.getElementById('sg-score').textContent=S.score;document.getElementById('sg-cor').textContent=S.correct;document.getElementById('sg-combo').textContent=S.combo;setTimeout(()=>soloLoadQ(),700);}
-function soloSkip(){if(S.qAnswered)return;if(S.cfg.skipMax!==Infinity&&S.skips<=0)return;if(S.cfg.skipMax!==Infinity)S.skips--;S.qAnswered=true;updateSoloSkipUI();document.querySelectorAll('#sg-choices .choice-btn').forEach(b=>b.disabled=true);document.getElementById('sg-bonus').textContent='スキップ';setTimeout(()=>soloLoadQ(),400);}
-function soloEnd(){clearInterval(S.iv);soloFinish();}
-function soloFinish(){clearInterval(S.iv);const rate=S.answered>0?Math.round(S.correct/S.answered*100):0;let medal='🥉',title='もう少し！',sub='';if(S.correct>=15&&rate>=85){medal='🏆';title='完璧！';sub='化学式マスター！';SFX.win();}else if(rate>=75){medal='🥇';title='すばらしい！';SFX.win();}else if(rate>=55){medal='🥈';title='まあまあ！';}document.getElementById('sr-medal').textContent=medal;document.getElementById('sr-title').textContent=title;document.getElementById('sr-sub').textContent=sub;document.getElementById('sr-score').textContent=S.score.toLocaleString();document.getElementById('sr-cor').textContent=S.correct+'問';document.getElementById('sr-rate').textContent=S.answered>0?rate+'%':'-%';document.getElementById('sr-mc').textContent=S.maxCombo;const wl=document.getElementById('sr-wrongs');if(S.wrongs.length>0){let h=`<div class="wrong-list"><div class="wrong-list-title">間違えた問題（${S.wrongs.length}問）</div>`;S.wrongs.slice(0,8).forEach(w=>{h+=`<div class="wrong-row"><span class="wrong-name">${w.q.name}</span><span class="wrong-given">${toSubHTML(w.chosen)}</span><span class="wrong-arrow">→</span><span class="wrong-ans">${toSubHTML(w.q.ans)}</span></div>`;});if(S.wrongs.length>8)h+=`<div style="font-size:12px;color:var(--text3);margin-top:4px;">他 ${S.wrongs.length-8} 問</div>`;h+='</div>';wl.innerHTML=h;}else{wl.innerHTML='';}showS('solo-result');BGM.stop();}
-
-function fb(){return window._fb;}
-function roomRef(id){return fb().ref(fb().db,'rooms/'+id);}
-function genRoomId(){const c='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';return Array.from({length:6},()=>c[Math.floor(Math.random()*c.length)]).join('');}
-
-async function createRoom(){
-  const name=(document.getElementById('multi-name').value.trim()||'プレイヤー1').slice(0,10);
-  const roomId=genRoomId();
-  M.roomId=roomId;M.role='host';M.myName=name;M.diff=M.pendingDiff;M.timeLimit=M.pendingTime;M.initHP=M.pendingHP||20;
-  await fb().set(roomRef(roomId),{host:name,diff:M.diff,timeLimit:M.timeLimit,initHP:M.initHP,state:'waiting',hostHP:M.initHP,guestHP:M.initHP,dmgField:0,gameStart:0,hostReady:false,guestReady:false});
-  document.getElementById('wait-room-id').textContent=roomId;
-  showS('multi-wait');
-  M.waitUnsub=fb().onValue(roomRef(roomId),snap=>{
-    const d=snap.val();if(!d)return;
-    if(d.state==='matched'){const u=M.waitUnsub;M.waitUnsub=null;if(u)u();M.guestName=d.guest;showReadyScreen(d);}
+// メニューでラウンド数を選択
+function selectRounds(n) {
+  totalRounds = n;
+  document.querySelectorAll('.round-btn').forEach(btn => {
+    btn.classList.toggle('selected', parseInt(btn.dataset.rounds) === n);
   });
 }
 
-async function joinRoom(){
-  const name=(document.getElementById('join-name').value.trim()||'プレイヤー2').slice(0,10);
-  const rid=document.getElementById('join-room-id').value.trim().toUpperCase();
-  const errEl=document.getElementById('join-error');errEl.textContent='';
-  if(rid.length!==6){errEl.textContent='6桁のIDを入力してください';return;}
-  const snap=await fb().get(roomRef(rid));
-  if(!snap.exists()){errEl.textContent='ルームが見つかりません';return;}
-  const d=snap.val();
-  if(d.state!=='waiting'){errEl.textContent='このルームはすでに開始しています';return;}
-  M.roomId=rid;M.role='guest';M.myName=name;M.diff=d.diff;M.timeLimit=d.timeLimit;M.initHP=d.initHP||20;
-  await fb().update(roomRef(rid),{guest:name,state:'matched'});
-  const snap2=await fb().get(roomRef(rid));
-  M.guestName=name;showReadyScreen(snap2.val());
-}
-
-async function cancelRoom(){if(M.waitUnsub){M.waitUnsub();M.waitUnsub=null;}await fb().remove(roomRef(M.roomId));showS('multi-top');}
-
-function showReadyScreen(roomData){
-  if(M.waitUnsub){M.waitUnsub();M.waitUnsub=null;}
-  if(M.readyUnsub){M.readyUnsub();M.readyUnsub=null;}
-  M.countingDown=false;
-  BGM.stop(); // Ready画面でBGM停止
-  const oppName=M.role==='host'?(roomData.guest||'相手'):roomData.host;
-  M.oppName=oppName;
-  document.getElementById('ready-my-name').textContent=M.myName;
-  document.getElementById('ready-opp-name').textContent=oppName;
-  document.getElementById('ready-my-status').textContent='⏳';
-  document.getElementById('ready-opp-status').textContent='⏳';
-  document.getElementById('ready-msg').textContent='準備ができたらReadyを押してください';
-  document.getElementById('ready-btn').style.display='';
-  document.getElementById('ready-countdown').style.display='none';
-  document.getElementById('ready-btn').disabled=false;
-  showS('multi-ready');
-  M.readyUnsub=fb().onValue(roomRef(M.roomId),snap=>{
-    const d=snap.val();if(!d)return;
-    const myKey=M.role==='host'?'hostReady':'guestReady';
-    const oppKey=M.role==='host'?'guestReady':'hostReady';
-    document.getElementById('ready-my-status').textContent=d[myKey]?'✅':'⏳';
-    document.getElementById('ready-opp-status').textContent=d[oppKey]?'✅':'⏳';
-    if(d.hostReady&&d.guestReady&&d.state==='matched'){
-      if(M.role==='host')fb().update(roomRef(M.roomId),{state:'countdown',gameStart:Date.now()+4000});
-    }
-    if(d.state==='countdown'&&!M.countingDown){
-      M.countingDown=true;const u=M.readyUnsub;M.readyUnsub=null;if(u)u();startCountdown(d);
-    }
-  });
-}
-
-async function pressReady(){
-  document.getElementById('ready-btn').disabled=true;
-  document.getElementById('ready-msg').textContent='相手の準備を待っています…';
-  const myKey=M.role==='host'?'hostReady':'guestReady';
-  await fb().update(roomRef(M.roomId),{[myKey]:true});
-}
-
-function startCountdown(roomData){
-  document.getElementById('ready-btn').style.display='none';
-  document.getElementById('ready-countdown').style.display='block';
-  const nums=['3','2','1','Go!'];let i=0;
-  const el=document.getElementById('countdown-num');el.textContent=nums[0];
-  SFX.countdown(false);
-  const iv=setInterval(()=>{
-    i++;
-    if(i<nums.length){
-      el.textContent=nums[i];el.style.animation='none';void el.offsetWidth;el.style.animation='countPop 0.8s ease';
-      SFX.countdown(nums[i]==='Go!');
-    }
-    else{clearInterval(iv);M.countingDown=false;startMultiGame(roomData);}
-  },900);
-}
-
-function startMultiGame(roomData){
-  if(M.waitUnsub){M.waitUnsub();M.waitUnsub=null;}
-  const hp=roomData.initHP||M.initHP||20;
-  // roomDataからtimeLimit・diffを確実に取得
-  if(roomData.timeLimit!==undefined)M.timeLimit=roomData.timeLimit;
-  if(roomData.diff)M.diff=roomData.diff;
-  _queue=[];M.myHP=hp;M.oppHP=hp;M.myCombo=0;M.myMaxCombo=0;M.myCorrect=0;M.myAnswered=0;M.myMiss=0;
-  M.skipsLeft=MULTI_SKIP[M.diff];M.dmgTimer=null;M.cdIv=null;M.localDmgStart=0;M.latestNet=0;M.cpuIv=null;
-  M.ended=false;M.qAnswered=false;M.gameStart=roomData.gameStart||Date.now();
-  const oppName=M.oppName||(M.role==='host'?(roomData.guest||'相手'):roomData.host);M.oppName=oppName;
-  document.getElementById('mg-my-name').textContent=M.myName;
-  document.getElementById('mg-opp-name').textContent=oppName;
-  updateDmgUI(0);
-  // ゲーム開始時にBGMを冒頭から再生
-  BGM.stop(); BGM.play(document.body.className||'bg-default');
-  // role固定色を設定（host=青, guest=赤）
-  const myColor  = M.role==='host' ? 'host' : 'guest';
-  const oppColor = M.role==='host' ? 'guest' : 'host';
-  document.getElementById('mg-field-me').className  = 'field field--'+myColor;
-  document.getElementById('mg-field-opp').className = 'field field--'+oppColor;
-  document.getElementById('mg-my-hp-bar').className  = 'field-hp-bar-fill field-hp--'+myColor;
-  document.getElementById('mg-opp-hp-bar').className = 'field-hp-bar-fill field-hp--'+oppColor;
-  updateMultiHPUI();updateMultiSkipUI();showS('multi-game');multiLoadQ();
-  if(M.timeLimit>0){M.gameIv=setInterval(()=>tickMultiTimer(),200);}
-  else{document.getElementById('mg-timer').textContent='∞';}
-  // CPUモードならCPUループ起動
-  if(M.isCpu)startCpuLoop();
-  // リスナー：自分HP・相手HP・dmgField・終了状態を監視
-  M.gameUnsub=fb().onValue(roomRef(M.roomId),snap=>{
-    if(M.ended)return;const d=snap.val();if(!d)return;
-    const myHPKey=M.role==='host'?'hostHP':'guestHP';
-    const oppHPKey=M.role==='host'?'guestHP':'hostHP';
-    // HP変化を反映
-    if(d[myHPKey]!==undefined&&d[myHPKey]!==M.myHP){
-      M.myHP=d[myHPKey];updateMultiHPUI();
-      flashField('me'); // 自分が被弾
-      if(!M.ended&&M.myHP<=0){M.ended=true;endMultiGame('lose');}
-    }
-    if(d[oppHPKey]!==undefined&&d[oppHPKey]!==M.oppHP){
-      M.oppHP=d[oppHPKey];updateMultiHPUI();
-      flashField('opp'); // 相手被弾フラッシュ
-      if(!M.ended&&M.oppHP<=0){M.ended=true;endMultiGame('win');}
-    }
-    // dmgStartが来たらローカルカウントダウンを開始
-    if(d.dmgStart&&d.dmgStart!==M.localDmgStart){
-      M.localDmgStart=d.dmgStart;
-      startLocalCountdown(d.dmgStart);
-    }
-    // dmgFieldをUIに反映（カウントはローカルで管理）
-    const net=d.dmgField||0;
-    M.latestNet=net;
-    if(net!==0||M.localDmgStart){
-      // net=0でもカウントが残っている場合は爆弾なし+カウント表示
-      const cd=M.localDmgStart?Math.max(0,Math.ceil(5-(Date.now()-M.localDmgStart)/1000)):null;
-      updateDmgUI(net,cd);
-    } else {
-      updateDmgUI(0,null);
-    }
-    if(d.state==='ended'&&!M.ended){
-      M.ended=true;endMultiGame(M.myHP>M.oppHP?'win':M.myHP<M.oppHP?'lose':'draw');
-    }
-  });
-}
-
-// ローカルでカウントダウンをsetIntervalで毎秒更新
-function startLocalCountdown(startTime){
-  clearInterval(M.cdIv);
-  M.localDmgStart=startTime;
-  M.cdIv=setInterval(()=>{
-    const elapsed=(Date.now()-startTime)/1000;
-    const cd=Math.max(0,Math.ceil(5-elapsed));
-    const net=M.latestNet||0;
-    updateDmgUI(net,cd);
-    if(elapsed>=5){ clearInterval(M.cdIv); M.cdIv=null; }
-  },200);
-}
-
-function tickMultiTimer(){const elapsed=(Date.now()-M.gameStart)/1000;const left=Math.max(0,M.timeLimit-elapsed);const el=document.getElementById('mg-timer');const prevLeft=M._prevLeft||999;el.textContent=Math.ceil(left);el.className='stat-value';if(left<=10)el.classList.add('timer-danger');else if(left<=20)el.classList.add('timer-warn');// 10s以下で毎秒ビープ
-if(left<=10&&left>0&&Math.ceil(left)!==Math.ceil(prevLeft))SFX.countdown();M._prevLeft=left;const pct=left/M.timeLimit*100;const bar=document.getElementById('mg-prog');bar.style.width=pct+'%';bar.className='progress-fill'+(left<=10?' prog-danger':left<=20?' prog-warn':'');if(left<=0){clearInterval(M.gameIv);timeUpMulti();}}
-function timeUpMulti(){if(M.ended)return;M.ended=true;endMultiGame(M.myHP>M.oppHP?'win':M.myHP<M.oppHP?'lose':'draw','時間切れ');}
-function multiLoadQ(){M.qAnswered=false;const q=nextQ(M.diff);M.currentQ=q;document.getElementById('mg-name').textContent=q.name;document.getElementById('mg-bonus').textContent='';const box=document.getElementById('mg-choices');box.innerHTML='';makeChoices(q,M.diff).forEach(ch=>{const b=document.createElement('button');b.className='choice-btn';b.innerHTML=toSubHTML(ch);b.dataset.ans=ch;b.onclick=()=>multiPick(b,ch,q);box.appendChild(b);});}
-function multiPick(btn,chosen,q){if(M.qAnswered||M.ended)return;M.qAnswered=true;M.myAnswered++;const ok=chosen===q.ans;document.querySelectorAll('#mg-choices .choice-btn').forEach(b=>{b.disabled=true;if(b.dataset.ans===q.ans)b.classList.add(ok?'correct':'reveal');});if(ok){btn.classList.add('correct');M.myCorrect++;M.myCombo++;if(M.myCombo>M.myMaxCombo)M.myMaxCombo=M.myCombo;SFX.correct();const dmg=M.myCombo>=11?5:M.myCombo>=5?3:M.myCombo>=3?2:0;if(dmg>0)addOutDmg(dmg);}else{btn.classList.add('wrong');M.myCombo=0;M.myMiss=(M.myMiss||0)+1;SFX.wrong();takeSelfDmg(3);}document.getElementById('mg-cor').textContent=M.myCorrect;document.getElementById('mg-combo').textContent=M.myCombo;setTimeout(()=>multiLoadQ(),700);}
-function multiSkip(){if(M.qAnswered||M.ended)return;if(MULTI_SKIP[M.diff]!==Infinity&&M.skipsLeft<=0)return;if(MULTI_SKIP[M.diff]!==Infinity)M.skipsLeft--;M.qAnswered=true;updateMultiSkipUI();document.querySelectorAll('#mg-choices .choice-btn').forEach(b=>b.disabled=true);document.getElementById('mg-bonus').textContent='スキップ';setTimeout(()=>multiLoadQ(),400);}
-async function multiEnd(){
-  if(M.ended)return;
-  M.ended=true;
-  clearInterval(M.gameIv);
-  if(M.gameUnsub)M.gameUnsub();
-  clearTimeout(M.dmgTimer);
-  await fb().update(roomRef(M.roomId),{state:'ended'});
-  // その時点でHP高い方が勝ち
-  const result=M.myHP>M.oppHP?'win':M.myHP<M.oppHP?'lose':'draw';
-  endMultiGame(result,'終了');
-}
-
-// ── ダメージ場システム ──
-// dmgField: 親(host)視点で管理
-//   負 = 親が有利（子にダメージ）
-//   正 = 子が有利（親にダメージ）
-// 親の攻撃: -dmg / 親の自爆: +dmg
-// 子の攻撃: +dmg / 子の自爆: -dmg
-
-function dmgDelta(dmg, isAttack){
-  // isAttack=true:攻撃, false:自爆
-  // 親: 攻撃=-dmg, 自爆=+dmg
-  // 子: 攻撃=+dmg, 自爆=-dmg
-  if(M.role==='host'){
-    return isAttack ? -dmg : +dmg;
-  } else {
-    return isAttack ? +dmg : -dmg;
+// ゲーム開始（メニューから呼ばれる）
+function startGame(mode) {
+  gameMode = mode;
+  myPlayerIndex = 0;
+  currentRound = 1;
+  cumulativeScores = [0, 0];
+  
+  // メニュー画面を閉じる
+  document.getElementById('startScreen').classList.remove('active');
+  
+  // CPU対戦時は視点切替ボタンを隠す
+  const vpBtn = document.getElementById('viewpointBtn');
+  if (vpBtn) {
+    vpBtn.style.display = (mode === 'cpu') ? 'none' : '';
   }
+  
+  newGame();
 }
 
-async function applyDmgField(delta){
-  if(M.ended)return;
-  const snap=await fb().get(fb().ref(fb().db,'rooms/'+M.roomId+'/dmgField'));
-  const cur=(snap.exists()&&snap.val()!==null)?snap.val():0;
-  const next=cur+delta;
-  const isFirst=(cur===0&&next!==0);
-  await fb().set(fb().ref(fb().db,'rooms/'+M.roomId+'/dmgField'),next);
-  // dmgStartは初回のみ書き込む（カウントダウンリセット防止）
-  if(isFirst){
-    await fb().set(fb().ref(fb().db,'rooms/'+M.roomId+'/dmgStart'),Date.now());
+// メニューに戻る
+function backToMenu() {
+  // 進行中のCPU処理タイマーをキャンセル
+  if (cpuActionTimer) {
+    clearTimeout(cpuActionTimer);
+    cpuActionTimer = null;
   }
-  if(!M.dmgTimer)M.dmgTimer=setTimeout(()=>flushDmg(),5000);
+  
+  hideModal('placeModal');
+  hideModal('roleModal');
+  hideModal('endModal');
+  document.getElementById('startScreen').classList.add('active');
 }
 
-// 正解コンボ攻撃
-function addOutDmg(dmg){ applyDmgField(dmgDelta(dmg,true)); }
-// 不正解自爆：dmgFieldに乗せるがdmgStartは上書きしない
-async function takeSelfDmg(dmg){
-  if(M.ended)return;
-  const delta=dmgDelta(dmg,false);
-  const snap=await fb().get(fb().ref(fb().db,'rooms/'+M.roomId+'/dmgField'));
-  const cur=(snap.exists()&&snap.val()!==null)?snap.val():0;
-  const next=cur+delta;
-  const isFirst=(cur===0&&next!==0);
-  await fb().set(fb().ref(fb().db,'rooms/'+M.roomId+'/dmgField'),next);
-  // dmgStartは初回のみ書き込む（カウントダウンリセット防止）
-  if(isFirst){
-    await fb().set(fb().ref(fb().db,'rooms/'+M.roomId+'/dmgStart'),Date.now());
+function newGame() {
+  const deck = shuffle(createDeck());
+  state = {
+    deck: deck,
+    field: [],
+    players: [newPlayer(), newPlayer()],
+    currentPlayer: 0,
+    selectedHandCard: null,
+    phase: 'play_hand', // play_hand → match_hand → match_draw → place
+    drawnCard: null,
+    pendingCaptures: [], // このターンで取った札（場の取り札も含む）の配置待ちキュー
+    gameOver: false,
+  };
+
+  for (let i = 0; i < 7; i++) {
+    state.players[0].hand.push(state.deck.pop());
+    state.players[1].hand.push(state.deck.pop());
   }
-  if(!M.dmgTimer)M.dmgTimer=setTimeout(()=>flushDmg(),5000);
-}
-
-// 5秒後に清算
-async function flushDmg(){
-  M.dmgTimer=null;
-  if(M.ended)return;
-  const snap=await fb().get(fb().ref(fb().db,'rooms/'+M.roomId+'/dmgField'));
-  if(!snap.exists()||snap.val()===null)return;
-  const net=snap.val();
-  await fb().set(fb().ref(fb().db,'rooms/'+M.roomId+'/dmgField'),0);
-  await fb().set(fb().ref(fb().db,'rooms/'+M.roomId+'/dmgStart'),0);
-  clearInterval(M.cdIv);M.cdIv=null;M.localDmgStart=0;M.latestNet=0;
-  if(net===0){updateDmgUI(0,null);return;}
-
-  // 爆弾その場爆発エフェクト（被弾側の爆弾エリアで爆発）
-  // net<0=子が被弾、net>0=親が被弾
-  const iReceiver = (net<0&&M.role==='guest')||(net>0&&M.role==='host');
-  const bombAreaId = iReceiver ? 'mg-bombs-bot' : 'mg-bombs-top';
-  const bombArea = document.getElementById(bombAreaId);
-  if(bombArea){
-    bombArea.querySelectorAll('.dmg-bomb').forEach((b,i)=>{
-      setTimeout(()=>{
-        b.classList.add('bomb-exploding');
-        setTimeout(()=>b.remove(),500);
-      },i*60);
-    });
+  for (let i = 0; i < FIELD_REFILL_TARGET; i++) {
+    if (state.deck.length === 0) break;
+    state.field.push(state.deck.pop());
   }
 
-  // 少し待ってからHP反映
-  setTimeout(async()=>{
-    updateDmgUI(0,null);
-    if(net<0){
-      // 親有利 → 子がダメージ
-      if(M.role==='host'){
-        M.oppHP=Math.max(0,M.oppHP+net);
-        SFX.dmgOut();
-        showPop('⚔ '+(-net)+' 相手HP');
-        updateMultiHPUI();
-        await fb().update(roomRef(M.roomId),{guestHP:M.oppHP});
-        if(!M.ended&&M.oppHP<=0){M.ended=true;endMultiGame('win');}
-      } else {
-        M.myHP=Math.max(0,M.myHP+net);
-        SFX.dmgIn();
-        showPop((-net)+' ダメージ！');
-        updateMultiHPUI();
-        flashField('me');
-        await fb().update(roomRef(M.roomId),{guestHP:M.myHP});
-        if(!M.ended&&M.myHP<=0){M.ended=true;endMultiGame('lose');}
-      }
-    } else {
-      // 子有利 → 親がダメージ
-      if(M.role==='host'){
-        M.myHP=Math.max(0,M.myHP-net);
-        SFX.dmgIn();
-        showPop(net+' ダメージ！');
-        updateMultiHPUI();
-        flashField('me');
-        await fb().update(roomRef(M.roomId),{hostHP:M.myHP});
-        if(!M.ended&&M.myHP<=0){M.ended=true;endMultiGame('lose');}
-      } else {
-        // 自分が子 → 相手HPを削る（エフェクトは上で済み）
-        M.oppHP=Math.max(0,M.oppHP-net);
-        SFX.dmgOut();
-        showPop('⚔ '+net+' 相手HP');
-        updateMultiHPUI();
-        await fb().update(roomRef(M.roomId),{hostHP:M.oppHP});
-        if(!M.ended&&M.oppHP<=0){M.ended=true;endMultiGame('win');}
-      }
+  hideModal('placeModal');
+  hideModal('roleModal');
+  hideModal('endModal');
+  
+  // 役モーダル関連の状態もリセット
+  pendingNewRoles = [];
+  selectedRoleIds = [];
+  placeModalState = null;
+  
+  log('ゲーム開始。一の人の番です。');
+  render();
+  
+  // CPUの手番ならCPUを起動
+  scheduleCpuTurnIfNeeded();
+}
+
+// ============================================================
+// 価数マッチング
+// ============================================================
+function canMatch(card1, card2) {
+  for (const v of card1.valences) {
+    if (card2.valences.includes(v)) return true;
+  }
+  return false;
+}
+
+function findMatches(card, fieldCards) {
+  return fieldCards.filter(fc => canMatch(card, fc));
+}
+
+// ============================================================
+// スロット関連ヘルパー
+// ============================================================
+// 役ごとのスロット枠を初期化
+function ensureSlot(player, roleId) {
+  if (!player.slots[roleId]) {
+    const role = ROLE_BY_ID[roleId];
+    const slot = {};
+    role.elements.forEach(e => { slot[e] = null; });
+    player.slots[roleId] = slot;
+  }
+  return player.slots[roleId];
+}
+
+// 役のスロットがすでに存在するか
+function hasSlot(player, roleId) {
+  return !!player.slots[roleId];
+}
+
+// 役の現在の充足状況（埋まったマス数 / 全マス数）
+function slotProgress(player, roleId) {
+  const role = ROLE_BY_ID[roleId];
+  if (!player.slots[roleId]) return { filled: 0, total: role.elements.length };
+  let filled = 0;
+  for (const e of role.elements) {
+    if (player.slots[roleId][e]) filled++;
+  }
+  return { filled, total: role.elements.length };
+}
+
+// 役が成立しているか（拡張可役は最低3つで成立）
+function isSlotComplete(player, roleId) {
+  const role = ROLE_BY_ID[roleId];
+  const p = slotProgress(player, roleId);
+  if (role.extensible) return p.filled >= 3;
+  return p.filled === p.total;
+}
+
+// 拡張可役の現在の得点（3=3点、6=7点）
+function getRoleCurrentPoints(player, roleId) {
+  const role = ROLE_BY_ID[roleId];
+  if (!role.extensible) return role.points;
+  const p = slotProgress(player, roleId);
+  if (p.filled >= 6) return role.completePoints;
+  return role.points;
+}
+
+// 札を配置できる役の候補リストを返す
+// その役のelementsにcard.symbolが含まれ、かつそのマスがまだ空いている役
+function getPlaceableRoles(player, card) {
+  const result = [];
+  for (const role of ROLES) {
+    if (!role.elements.includes(card.symbol)) continue;
+    // すでにそのマスが埋まっているなら配置不可
+    if (player.slots[role.id] && player.slots[role.id][card.symbol]) continue;
+    // すでに完成済み(extensible除く)なら配置不可
+    if (!role.extensible && isSlotComplete(player, role.id) && hasSlot(player, role.id)) continue;
+    // 完成済み非拡張役（completedRoles 入り）に新しく入れることもなし
+    if (player.completedRoles.includes(role.id) && !role.extensible) continue;
+    // 拡張可役で6マス全部埋まってるなら配置不可
+    if (role.extensible) {
+      const p = slotProgress(player, role.id);
+      if (p.filled >= 6) continue;
     }
-  },700);
+    result.push(role);
+  }
+  return result;
 }
 
-function flashField(who){
-  const el=document.getElementById(who==='me'?'mg-field-me':'mg-field-opp');
-  if(el){el.classList.remove('hp-flash');void el.offsetWidth;el.classList.add('hp-flash');}
+// 札を配置：sourceは 'hand'/'pending'のヒント不要、playerのpendingやcaptureから動かす
+function placeCardInSlot(player, card, roleId) {
+  ensureSlot(player, roleId);
+  player.slots[roleId][card.symbol] = card;
 }
 
-// dmgField の値をUIに表示（自分視点で有利/不利を判定）
-// 爆弾アイコン文字列を生成（10個超えたら☄️換算）
-function makeBombHTML(count, color){
-  if(count<=0)return '';
-  const emoji = color==='blue'?'🔵':'🔴';
-  const meteors = Math.floor(count/10);
-  const bombs   = count % 10;
-  let h='';
-  for(let i=0;i<meteors;i++) h+=`<span class="dmg-bomb">☄️</span>`;
-  for(let i=0;i<bombs;i++)   h+=`<span class="dmg-bomb">${emoji}</span>`;
-  return h;
-}
-
-function updateDmgUI(net, countdown){
-  const inner = document.getElementById('mg-dmg-inner');
-  const icon  = document.getElementById('mg-dmg-icon');
-  const cd    = document.getElementById('mg-dmg-countdown');
-  const top   = document.getElementById('mg-bombs-top');
-  const bot   = document.getElementById('mg-bombs-bot');
-  if(!inner)return;
-  const abs = Math.abs(net);
-
-  if(net===0){
-    if(countdown!=null&&countdown>0){
-      // 相殺されたがカウントは継続
-      inner.className='dmg-pool-inner neutral';
-      icon.textContent='⚡'; icon.style.display='';
-      cd.textContent=countdown+'s';
-      top.innerHTML=''; bot.innerHTML='';
-    } else {
-      inner.className='dmg-pool-inner neutral';
-      icon.textContent='⚔'; icon.style.display='';
-      cd.textContent='';
-      top.innerHTML=''; bot.innerHTML='';
-    }
+// ============================================================
+// アクション処理
+// ============================================================
+function selectHandCard(cardId) {
+  if (state.gameOver) return;
+  if (state.currentPlayer !== myPlayerIndex) return; // 自分の手番のみ操作可
+  if (state.phase !== 'play_hand' && state.phase !== 'match_hand') return;
+  
+  const player = state.players[state.currentPlayer];
+  const card = player.hand.find(c => c.id === cardId);
+  if (!card) return;
+  
+  if (state.selectedHandCard && state.selectedHandCard.id === cardId) {
+    state.selectedHandCard = null;
+    state.phase = 'play_hand';
+    log('選択を取り消しました。');
+    render();
     return;
   }
-
-  // net<0=青（親有利）, net>0=赤（子有利）
-  const color = net<0 ? 'blue' : 'red';
-  inner.className='dmg-pool-inner '+color;
-  icon.style.display='none';
-  cd.textContent = countdown!=null ? countdown+'s' : '';
-
-  // 爆弾の位置：ダメージを受ける側の近く
-  // net<0=子が受ける → 子の手前（下）が被弾側
-  //   親画面：奥（上）に青爆弾  子画面：手前（下）に青爆弾
-  // net>0=親が受ける → 親の手前（下）が被弾側
-  //   子画面：奥（上）に赤爆弾  親画面：手前（下）に赤爆弾
-  const bombs = makeBombHTML(abs, color);
-  if(net<0){
-    // 青：親画面→上、子画面→下
-    if(M.role==='host'){ top.innerHTML=bombs; bot.innerHTML=''; }
-    else               { bot.innerHTML=bombs; top.innerHTML=''; }
+  
+  state.selectedHandCard = card;
+  state.phase = 'match_hand';
+  
+  const matches = findMatches(card, state.field);
+  if (matches.length === 0) {
+    log(`${card.symbol}：取れる場札なし。「場に置く」ボタンで確定、または別の札を選択。`);
+  } else if (matches.length === 1) {
+    log(`${card.symbol}：光る場札をクリックして取る、または別の札を選択。`);
   } else {
-    // 赤：子画面→上、親画面→下
-    if(M.role==='guest'){ top.innerHTML=bombs; bot.innerHTML=''; }
-    else                { bot.innerHTML=bombs; top.innerHTML=''; }
+    log(`${card.symbol}：取りたい場札を選んでください。`);
+  }
+  render();
+}
+
+function placeSelectedCardOnField() {
+  if (state.gameOver) return;
+  if (state.currentPlayer !== myPlayerIndex) return;
+  if (state.phase !== 'match_hand') return;
+  if (!state.selectedHandCard) return;
+  
+  const player = state.players[state.currentPlayer];
+  const card = state.selectedHandCard;
+  
+  log(`${card.symbol}を場に置きました。`);
+  player.hand = player.hand.filter(c => c.id !== card.id);
+  state.field.push(card);
+  state.selectedHandCard = null;
+  state.phase = 'play_hand';
+  proceedToDraw();
+}
+
+function selectFieldCard(cardId) {
+  if (state.gameOver) return;
+  if (state.currentPlayer !== myPlayerIndex) return;
+  
+  if (state.phase === 'match_hand') {
+    const player = state.players[state.currentPlayer];
+    const handCard = state.selectedHandCard;
+    const fieldCard = state.field.find(c => c.id === cardId);
+    
+    if (!fieldCard || !canMatch(handCard, fieldCard)) {
+      log('この札は取れません。');
+      return;
+    }
+    
+    log(`${handCard.symbol}で場の${fieldCard.symbol}を取りました。`);
+    player.hand = player.hand.filter(c => c.id !== handCard.id);
+    state.field = state.field.filter(c => c.id !== fieldCard.id);
+    
+    state.pendingCaptures.push(handCard, fieldCard);
+    state.selectedHandCard = null;
+    state.phase = 'play_hand';
+    proceedToDraw();
+  } else if (state.phase === 'match_draw') {
+    const drawnCard = state.drawnCard;
+    const fieldCard = state.field.find(c => c.id === cardId);
+    
+    if (!fieldCard || !canMatch(drawnCard, fieldCard)) {
+      log('この札は取れません。');
+      return;
+    }
+    
+    log(`山札の${drawnCard.symbol}で場の${fieldCard.symbol}を取りました。`);
+    state.field = state.field.filter(c => c.id !== fieldCard.id);
+    state.pendingCaptures.push(drawnCard, fieldCard);
+    state.drawnCard = null;
+    state.phase = 'play_hand';
+    
+    afterAllCaptures();
   }
 }
-function updateMultiHPUI(){
-  const myHP=Math.max(0,M.myHP), oppHP=Math.max(0,M.oppHP);
-  const initHP=M.initHP||20;
-  document.getElementById('mg-my-hp').textContent=myHP;
-  document.getElementById('mg-opp-hp').textContent=oppHP;
-  document.getElementById('mg-my-hp-bar').style.width=myHP/initHP*100+'%';
-  document.getElementById('mg-opp-hp-bar').style.width=oppHP/initHP*100+'%';
-  // HP2割以下で点滅
-  const myEl=document.getElementById('mg-my-hp');
-  const oppEl=document.getElementById('mg-opp-hp');
-  const myBar=document.getElementById('mg-my-hp-bar');
-  const oppBar=document.getElementById('mg-opp-hp-bar');
-  if(myHP/initHP<=0.2&&myHP>0){
-    myEl.classList.add('hp-danger-pulse');
-    myBar.classList.add('hp-danger-pulse');
-  } else {
-    myEl.classList.remove('hp-danger-pulse');
-    myBar.classList.remove('hp-danger-pulse');
+
+function proceedToDraw() {
+  if (state.deck.length === 0) {
+    afterAllCaptures();
+    return;
   }
-  if(oppHP/initHP<=0.2&&oppHP>0){
-    oppEl.classList.add('hp-danger-pulse');
-    oppBar.classList.add('hp-danger-pulse');
+  
+  const drawn = state.deck.pop();
+  state.drawnCard = drawn;
+  const matches = findMatches(drawn, state.field);
+  
+  log(`山札から${drawn.symbol}が出ました。`);
+  render();
+  
+  if (matches.length === 0) {
+    setTimeout(() => {
+      log(`${drawn.symbol}を場に置きました。`);
+      state.field.push(drawn);
+      state.drawnCard = null;
+      afterAllCaptures();
+    }, 1200);
   } else {
-    oppEl.classList.remove('hp-danger-pulse');
-    oppBar.classList.remove('hp-danger-pulse');
+    state.phase = 'match_draw';
+    if (matches.length === 1) {
+      log(`山札の${drawn.symbol}で取れる札を選んでください。`);
+    } else {
+      log(`山札の${drawn.symbol}に対応する場札を選んでください。`);
+    }
+    render();
   }
 }
-function updateMultiSkipUI(){const btn=document.getElementById('mg-skip-btn');const sl=M.skipsLeft;if(MULTI_SKIP[M.diff]===0){btn.style.display='none';return;}btn.style.display='';if(sl===Infinity){btn.textContent='スキップ';btn.disabled=false;}else if(sl>0){btn.textContent=`スキップ（残${sl}）`;btn.disabled=false;}else{btn.textContent='スキップ不可';btn.disabled=true;}}
-function endMultiGame(result,reason=''){clearInterval(M.gameIv);clearInterval(M.cdIv);M.cdIv=null;clearTimeout(M.cpuIv);M.cpuIv=null;if(M.gameUnsub)M.gameUnsub();clearTimeout(M.dmgTimer);M.dmgTimer=null;if(result==='win')SFX.win();else if(result==='lose')SFX.lose();const rate=M.myAnswered>0?Math.round(M.myCorrect/M.myAnswered*100):0;let medal,title;if(result==='win'){medal='🏆';title='勝利！';}else if(result==='lose'){medal='💀';title='敗北…';}else{medal='🤝';title='引き分け！';}document.getElementById('mr-medal').textContent=medal;document.getElementById('mr-title').textContent=title;document.getElementById('mr-sub').textContent=reason;document.getElementById('mr-cor').textContent=M.myCorrect+'問';document.getElementById('mr-miss').textContent=(M.myMiss||0)+'回';document.getElementById('mr-rate').textContent=rate+'%';document.getElementById('mr-mc').textContent=M.myMaxCombo;showS('multi-result');BGM.stop();}
 
-// ── CPU対戦 ──
-async function startCpuBattle(){
-  const name=(document.getElementById('cpu-name').value.trim()||'プレイヤー').slice(0,10);
-  const diff=CPU.pendingDiff||'normal';
-  const timeLimit=CPU.pendingTime; // 0=無制限をそのまま渡す
-  const initHP=CPU.pendingHP||20;
-  const roomId=genRoomId();
+function refillFieldIfNeeded() {
+  if (state.field.length > FIELD_REFILL_TRIGGER) return;
+  let added = 0;
+  while (state.field.length < FIELD_REFILL_TARGET && state.deck.length > 0) {
+    state.field.push(state.deck.pop());
+    added++;
+  }
+  if (added > 0) {
+    log(`場札が少なくなったので、山から${added}枚補充しました。`);
+  }
+}
 
-  // ホストとして部屋を作る
-  M.roomId=roomId; M.role='host'; M.myName=name;
-  M.diff=diff; M.timeLimit=timeLimit; M.initHP=initHP;
-  M.isCpu=true;
-  M.oppName='CPU🤖';
+// 全取りが終わったあと、配置モーダルを開く（取りがあれば）
+function afterAllCaptures() {
+  state.drawnCard = null;
+  refillFieldIfNeeded();
+  if (state.pendingCaptures.length > 0) {
+    openPlaceModal();
+  } else {
+    // 取りなしターン：ペンディングは凍結。役判定もなし（札の動きがないので新規成立はあり得ない）
+    endTurn();
+  }
+}
 
-  await fb().set(roomRef(roomId),{
-    host:name, guest:'CPU🤖', diff, timeLimit, initHP,
-    state:'matched',
-    hostHP:initHP, guestHP:initHP,
-    dmgField:0, dmgStart:0, gameStart:0,
-    hostReady:false, guestReady:false,
+// ============================================================
+// 配置モーダル
+// ============================================================
+let placeModalState = null;
+
+function openPlaceModal() {
+  // 自分の手番でなければモーダルを開かず、自動でターン終了処理
+  if (state.currentPlayer !== myPlayerIndex) {
+    // 相手の手番：取った札はとりあえずペンディング扱い（オンライン化時はサーバー側で処理）
+    // ローカルテスト時、視点切替してもらう
+    return;
+  }
+  
+  const player = state.players[state.currentPlayer];
+  const captures = [...state.pendingCaptures];
+  const pendings = [...player.pending];
+  
+  const selections = {};
+  // 取得札はデフォルト「保留」（ユーザーが役に置きたい札のみ選択する）
+  // ペンディング札もデフォルト「保留維持」
+  for (const c of captures) selections[c.id] = 'pending';
+  for (const c of pendings) selections[c.id] = 'pending';
+  
+  placeModalState = {
+    captures,
+    pendings,
+    selections,
+  };
+  
+  renderPlaceModal();
+  showModal('placeModal');
+}
+
+function renderPlaceModal() {
+  const player = state.players[state.currentPlayer];
+  const playerName = state.currentPlayer === 0 ? '一の人' : '二の人';
+  document.getElementById('placeModalTitle').textContent = `${playerName} 札を獲得`;
+  
+  // 取得した札の表示と配置先選択
+  const cardDisplay = document.getElementById('placeModalCard');
+  cardDisplay.innerHTML = '';
+  const captures = placeModalState.captures;
+  const cardsRow = document.createElement('div');
+  cardsRow.style.display = 'flex';
+  cardsRow.style.gap = '8px';
+  cardsRow.style.justifyContent = 'center';
+  cardsRow.style.flexWrap = 'wrap';
+  
+  // 取得札ごとに「カード + 配置先選択」を縦に並べる
+  cardDisplay.style.flexDirection = 'column';
+  cardDisplay.style.gap = '12px';
+  cardDisplay.style.alignItems = 'stretch';
+  
+  // 各取得札について行を作る
+  document.getElementById('newCardSectionLabel').textContent = '獲得した札（デフォルト保留 / 役に置く札を選択）';
+  const rolesContainer = document.getElementById('placeModalRoles');
+  rolesContainer.innerHTML = '';
+  
+  captures.forEach(card => {
+    const row = document.createElement('div');
+    row.className = 'modal-pending-card-row';
+    row.style.flexDirection = 'column';
+    row.style.alignItems = 'stretch';
+    
+    // カード+ヘッダ
+    const headerRow = document.createElement('div');
+    headerRow.style.display = 'flex';
+    headerRow.style.alignItems = 'center';
+    headerRow.style.gap = '12px';
+    headerRow.style.marginBottom = '8px';
+    
+    const cardDiv = renderCard(card, {});
+    headerRow.appendChild(cardDiv);
+    
+    const label = document.createElement('div');
+    label.style.color = 'var(--gold-bright)';
+    label.style.fontSize = '0.9rem';
+    label.style.flex = '1';
+    label.style.textAlign = 'left';
+    label.textContent = `${card.symbol} の配置先：`;
+    headerRow.appendChild(label);
+    
+    row.appendChild(headerRow);
+    
+    // 配置選択肢
+    const optionsList = document.createElement('div');
+    optionsList.style.display = 'flex';
+    optionsList.style.flexDirection = 'column';
+    optionsList.style.gap = '4px';
+    
+    const placeable = getPlaceableRoles(player, card);
+    
+    if (placeable.length === 0) {
+      const note = document.createElement('div');
+      note.style.color = 'var(--ink-soft)';
+      note.style.fontSize = '0.8rem';
+      note.style.padding = '6px';
+      note.textContent = '※ 配置できる役なし（保留に）';
+      optionsList.appendChild(note);
+      placeModalState.selections[card.id] = 'pending';
+    }
+    
+    // 各役の選択肢
+    placeable.forEach(role => {
+      const opt = createRoleOption(role, player, card.id, false);
+      optionsList.appendChild(opt);
+    });
+    
+    // 保留オプション
+    const pendingOpt = document.createElement('div');
+    pendingOpt.className = 'modal-role';
+    if (placeModalState.selections[card.id] === 'pending') pendingOpt.classList.add('selected');
+    pendingOpt.innerHTML = `
+      <div>
+        <div class="role-name">保留（ペンディング）</div>
+        <div class="role-formula">後のターンで配置できる</div>
+      </div>
+      <div class="role-points">-</div>
+    `;
+    pendingOpt.onclick = () => {
+      placeModalState.selections[card.id] = 'pending';
+      renderPlaceModal();
+    };
+    optionsList.appendChild(pendingOpt);
+    
+    row.appendChild(optionsList);
+    rolesContainer.appendChild(row);
   });
-
-  // Ready画面へ（CPUは即座にReadyにする）
-  await fb().update(roomRef(roomId),{guestReady:true});
-  showReadyScreen({host:name,guest:'CPU🤖',diff,timeLimit,initHP,state:'matched',hostReady:false,guestReady:true});
+  
+  // ペンディング札の配置オプション
+  const pendingSection = document.getElementById('placeModalPendingSection');
+  const pendingList = document.getElementById('placeModalPendingList');
+  pendingList.innerHTML = '';
+  
+  if (placeModalState.pendings.length > 0) {
+    pendingSection.style.display = 'block';
+    placeModalState.pendings.forEach(card => {
+      const row = document.createElement('div');
+      row.className = 'modal-pending-card-row';
+      row.style.flexDirection = 'column';
+      row.style.alignItems = 'stretch';
+      
+      const headerRow = document.createElement('div');
+      headerRow.style.display = 'flex';
+      headerRow.style.alignItems = 'center';
+      headerRow.style.gap = '12px';
+      headerRow.style.marginBottom = '8px';
+      
+      const cardDiv = renderCard(card, {});
+      headerRow.appendChild(cardDiv);
+      
+      const label = document.createElement('div');
+      label.style.color = 'var(--gold-bright)';
+      label.style.fontSize = '0.9rem';
+      label.style.flex = '1';
+      label.style.textAlign = 'left';
+      label.textContent = `保留中の ${card.symbol}：`;
+      headerRow.appendChild(label);
+      
+      row.appendChild(headerRow);
+      
+      const optionsList = document.createElement('div');
+      optionsList.style.display = 'flex';
+      optionsList.style.flexDirection = 'column';
+      optionsList.style.gap = '4px';
+      
+      const placeable = getPlaceableRoles(player, card);
+      placeable.forEach(role => {
+        const opt = createRoleOption(role, player, card.id, false);
+        optionsList.appendChild(opt);
+      });
+      
+      // 保留維持オプション
+      const stayOpt = document.createElement('div');
+      stayOpt.className = 'modal-role';
+      if (placeModalState.selections[card.id] === 'pending') stayOpt.classList.add('selected');
+      stayOpt.innerHTML = `
+        <div>
+          <div class="role-name">保留を続ける</div>
+          <div class="role-formula">次のターンで配置可能</div>
+        </div>
+        <div class="role-points">-</div>
+      `;
+      stayOpt.onclick = () => {
+        placeModalState.selections[card.id] = 'pending';
+        renderPlaceModal();
+      };
+      optionsList.appendChild(stayOpt);
+      
+      row.appendChild(optionsList);
+      pendingList.appendChild(row);
+    });
+  } else {
+    pendingSection.style.display = 'none';
+  }
+  
+  updatePlaceModalConfirmBtn();
 }
 
-// CPUのゲームループ（ホスト側でローカル実行）
-function startCpuLoop(){
-  if(!M.isCpu)return;
-  const cfg=CPU_CFG[M.diff]||CPU_CFG.normal;
-  let cpuCombo=0;
-  let cpuQueue=makeQueue(M.diff);
+function createRoleOption(role, player, cardId, disabled) {
+  const opt = document.createElement('div');
+  opt.className = 'modal-role';
+  if (disabled) opt.classList.add('disabled');
+  if (placeModalState.selections[cardId] === role.id) opt.classList.add('selected');
+  
+  const progress = slotProgress(player, role.id);
+  const points = role.extensible 
+    ? `${role.points}〜${role.completePoints}点` 
+    : `${role.points}点`;
+  
+  opt.innerHTML = `
+    <div style="flex: 1;">
+      <div class="role-name">${role.name}</div>
+      <div class="role-formula">${role.formula}</div>
+      <div class="role-progress">現在 ${progress.filled}/${progress.total}</div>
+    </div>
+    <div class="role-points">${points}</div>
+  `;
+  
+  if (!disabled) {
+    opt.onclick = () => {
+      placeModalState.selections[cardId] = role.id;
+      renderPlaceModal();
+    };
+  }
+  return opt;
+}
 
-  function cpuAnswer(){
-    if(M.ended)return;
-    if(!cpuQueue.length)cpuQueue=makeQueue(M.diff);
-    const q=cpuQueue.shift();
-    const correct=Math.random()<cfg.acc;
-    if(correct){
-      cpuCombo++;
-      const dmg=cpuCombo>=11?5:cpuCombo>=5?3:cpuCombo>=3?2:0;
-      if(dmg>0){
-        // CPUはguest(赤)として攻撃 → dmgDeltaのguest攻撃と同じ（+dmg）
-        cpuApplyDmg(dmg,true);
+// このターンで役に配置される札の総数（新規取得＋ペンディングからの配置）
+function countCardsBeingPlaced() {
+  let count = 0;
+  const sel = placeModalState.selections;
+  for (const id of Object.keys(sel)) {
+    if (sel[id] && sel[id] !== 'pending') count++;
+  }
+  return count;
+}
+
+const PLACE_LIMIT_PER_TURN = 2;
+
+function updatePlaceModalConfirmBtn() {
+  const btn = document.getElementById('placeModalConfirmBtn');
+  const captures = placeModalState.captures;
+  const allSelected = captures.every(c => placeModalState.selections[c.id]);
+  const placeCount = countCardsBeingPlaced();
+  const overLimit = placeCount > PLACE_LIMIT_PER_TURN;
+  
+  btn.disabled = !allSelected || overLimit;
+  
+  if (overLimit) {
+    btn.textContent = `役に置けるのは2枚まで`;
+  } else {
+    btn.textContent = `決定`;
+  }
+  
+  btn.onclick = confirmPlacements;
+  
+  // ステータスバー更新
+  const statusBar = document.getElementById('placeModalStatus');
+  if (statusBar) {
+    if (overLimit) {
+      statusBar.style.color = 'var(--vermilion)';
+      statusBar.style.borderColor = 'var(--vermilion)';
+      statusBar.textContent = `⚠ 役に置けるのは1ターンに2枚まで（現在 ${placeCount} 枚を役に配置中）`;
+    } else {
+      statusBar.style.color = 'var(--gold-bright)';
+      statusBar.style.borderColor = 'var(--gold)';
+      statusBar.textContent = `役に配置: ${placeCount} / ${PLACE_LIMIT_PER_TURN} 枚（残り${PLACE_LIMIT_PER_TURN - placeCount}枚配置可能）`;
+    }
+  }
+}
+
+function confirmPlacements() {
+  const player = state.players[state.currentPlayer];
+  const sel = placeModalState.selections;
+  
+  // まず既存ペンディングを処理（保留継続 or 役へ）
+  const newPending = [];
+  for (const card of placeModalState.pendings) {
+    const dest = sel[card.id];
+    if (dest === 'pending' || !dest) {
+      newPending.push(card);
+    } else {
+      placeCardInSlot(player, card, dest);
+    }
+  }
+  player.pending = newPending;
+  
+  // 次に新規取得札を配置（pending選択ならplayer.pendingに追加される）
+  for (const card of placeModalState.captures) {
+    const dest = sel[card.id];
+    if (dest === 'pending') {
+      player.pending.push(card);
+    } else {
+      placeCardInSlot(player, card, dest);
+    }
+  }
+  
+  // pendingCapturesクリア
+  state.pendingCaptures = [];
+  placeModalState = null;
+  hideModal('placeModal');
+  
+  // 役の成立判定
+  checkRolesAfterPlacement();
+}
+
+function checkRolesAfterPlacement() {
+  const player = state.players[state.currentPlayer];
+  const newRoles = [];
+  
+  for (const role of ROLES) {
+    if (player.completedRoles.includes(role.id) && !role.extensible) continue;
+    if (!hasSlot(player, role.id)) continue;
+    
+    if (role.extensible) {
+      // 拡張可：3つ以上で「成立」状態。まだ申告してなければ、または前回より成長していれば対象
+      const progress = slotProgress(player, role.id);
+      if (progress.filled < 3) continue;
+      
+      const wasCompleted = player.completedRoles.includes(role.id);
+      if (!wasCompleted) {
+        // 初回成立
+        newRoles.push({ role, mode: 'new', currentPoints: getRoleCurrentPoints(player, role.id) });
+      } else {
+        // 拡張：前回からの進捗があるかどうかは別途記録が必要だが、簡易的に「まだ6マス埋まってない+α」で再申告対象に
+        // ここでは「6マス埋まったら格上げ申告可能」というルールにする
+        if (progress.filled === 6 && !player.completedRoles.includes(role.id + '_full')) {
+          newRoles.push({ role, mode: 'upgrade', currentPoints: role.completePoints });
+        }
       }
     } else {
-      cpuCombo=0;
-      // CPU自爆 → guest自爆（-dmg）
-      cpuApplyDmg(3,false);
+      if (isSlotComplete(player, role.id)) {
+        newRoles.push({ role, mode: 'new', currentPoints: role.points });
+      }
     }
-    M.cpuIv=setTimeout(cpuAnswer,cfg.interval+(Math.random()*800-400));
   }
-  M.cpuIv=setTimeout(cpuAnswer,cfg.interval);
-}
-
-async function cpuApplyDmg(dmg,isAttack){
-  if(M.ended)return;
-  // CPUはguest役 → 攻撃=+dmg, 自爆=-dmg
-  const delta=isAttack?+dmg:-dmg;
-  const snap=await fb().get(fb().ref(fb().db,'rooms/'+M.roomId+'/dmgField'));
-  const cur=(snap.exists()&&snap.val()!==null)?snap.val():0;
-  const next=cur+delta;
-  const isFirst=(cur===0&&next!==0);
-  await fb().set(fb().ref(fb().db,'rooms/'+M.roomId+'/dmgField'),next);
-  if(isFirst){
-    await fb().set(fb().ref(fb().db,'rooms/'+M.roomId+'/dmgStart'),Date.now());
-  }
-  if(!M.dmgTimer)M.dmgTimer=setTimeout(()=>flushDmg(),5000);
-}
-
-async function rematch(){
-  clearTimeout(M.dmgTimer);M.dmgTimer=null;
-  clearTimeout(M.cpuIv);M.cpuIv=null;
-  const hp=M.initHP||20;
-  if(M.isCpu){
-    await fb().update(roomRef(M.roomId),{
-      state:'countdown', hostHP:hp, guestHP:hp,
-      dmgField:0, dmgStart:0, gameStart:Date.now()+4000,
-    });
-    const snap=await fb().get(roomRef(M.roomId));
-    startCountdown(snap.val());
+  
+  if (newRoles.length > 0) {
+    showRoleModal(newRoles);
   } else {
-    await fb().update(roomRef(M.roomId),{
-      state:'matched', hostHP:hp, guestHP:hp,
-      dmgField:0, dmgStart:0, gameStart:0, hostReady:false, guestReady:false,
-    });
-    const snap=await fb().get(roomRef(M.roomId));
-    showReadyScreen(snap.val());
+    endTurn();
   }
 }
+
+// ============================================================
+// 役モーダル
+// ============================================================
+let pendingNewRoles = [];
+let selectedRoleIds = [];
+
+function showRoleModal(newRoleEntries) {
+  // 自分の手番でなければモーダルは出さない（視点切替時に開く）
+  if (state.currentPlayer !== myPlayerIndex) {
+    return;
+  }
+  
+  pendingNewRoles = newRoleEntries;
+  selectedRoleIds = newRoleEntries.map(r => r.role.id + (r.mode === 'upgrade' ? '_full' : ''));
+  
+  const playerName = state.currentPlayer === 0 ? '一の人' : '二の人';
+  document.getElementById('roleModalTitle').textContent = `${playerName} 役成立`;
+  document.getElementById('roleModalSubtitle').textContent = '上がる役を選んでください（複数選択可）';
+  
+  const list = document.getElementById('roleModalRoles');
+  list.innerHTML = '';
+  newRoleEntries.forEach(entry => {
+    const role = entry.role;
+    const div = document.createElement('div');
+    div.className = 'modal-role selected';
+    const internalId = role.id + (entry.mode === 'upgrade' ? '_full' : '');
+    div.dataset.internalId = internalId;
+    const displayName = entry.mode === 'upgrade' ? `${role.name}（完全）` : role.name;
+    div.innerHTML = `
+      <div style="text-align: left;">
+        <div class="role-name" style="font-size: 0.95rem;">${displayName}</div>
+        <div class="role-formula">${role.formula}</div>
+      </div>
+      <div class="role-points">${entry.currentPoints}点</div>
+    `;
+    div.onclick = () => {
+      div.classList.toggle('selected');
+      const id = div.dataset.internalId;
+      if (selectedRoleIds.includes(id)) {
+        selectedRoleIds = selectedRoleIds.filter(x => x !== id);
+      } else {
+        selectedRoleIds.push(id);
+      }
+      updateRoleModalButtons();
+    };
+    list.appendChild(div);
+  });
+  
+  updateRoleModalButtons();
+  
+  document.getElementById('roleModalAgariBtn').onclick = confirmAgari;
+  document.getElementById('roleModalKoikoiBtn').onclick = confirmKoikoi;
+  
+  showModal('roleModal');
+  render();
+}
+
+function updateRoleModalButtons() {
+  // 選ばれた役の合計点
+  const player = state.players[state.currentPlayer];
+  let totalPoints = 0;
+  for (const entry of pendingNewRoles) {
+    const id = entry.role.id + (entry.mode === 'upgrade' ? '_full' : '');
+    if (selectedRoleIds.includes(id)) {
+      // upgradeの場合は (complete - already_announced) の差分点
+      if (entry.mode === 'upgrade') {
+        // 既に基本3点を取っていれば、完全7点との差分は4点
+        totalPoints += (entry.currentPoints - entry.role.points);
+      } else {
+        totalPoints += entry.currentPoints;
+      }
+    }
+  }
+  
+  const agariBtn = document.getElementById('roleModalAgariBtn');
+  const koikoiBtn = document.getElementById('roleModalKoikoiBtn');
+  
+  agariBtn.textContent = `上がる (${totalPoints}点)`;
+  agariBtn.disabled = totalPoints < 5 || selectedRoleIds.length === 0;
+  koikoiBtn.disabled = selectedRoleIds.length === 0;
+}
+
+function confirmAgari() {
+  const player = state.players[state.currentPlayer];
+  let points = 0;
+  const announcedNames = [];
+  
+  for (const entry of pendingNewRoles) {
+    const id = entry.role.id + (entry.mode === 'upgrade' ? '_full' : '');
+    if (!selectedRoleIds.includes(id)) continue;
+    
+    if (entry.mode === 'upgrade') {
+      points += (entry.currentPoints - entry.role.points);
+      player.completedRoles.push(entry.role.id + '_full');
+      announcedNames.push(entry.role.name + '（完全）');
+    } else {
+      points += entry.currentPoints;
+      player.completedRoles.push(entry.role.id);
+      announcedNames.push(entry.role.name);
+    }
+  }
+  
+  // こいこいボーナス：宣言回数 × 3点
+  let bonusText = '';
+  if (player.koikoiCount > 0) {
+    const bonus = player.koikoiCount * KOIKOI_BONUS_PER_COUNT;
+    points += bonus;
+    bonusText = `（こいこい${player.koikoiCount}回 +${bonus}点）`;
+    log(`こいこい${player.koikoiCount}回ボーナス +${bonus}点`);
+  }
+  
+  player.score += points;
+  hideModal('roleModal');
+  
+  // 処理完了：保留中の役リストをクリア
+  pendingNewRoles = [];
+  selectedRoleIds = [];
+  
+  const playerName = state.currentPlayer === 0 ? '一の人' : '二の人';
+  showEndScreen(`${playerName}の上がり！`, `${announcedNames.join('、')} ${bonusText} で ${points}点`);
+}
+
+function confirmKoikoi() {
+  const player = state.players[state.currentPlayer];
+  
+  for (const entry of pendingNewRoles) {
+    const id = entry.role.id + (entry.mode === 'upgrade' ? '_full' : '');
+    if (!selectedRoleIds.includes(id)) continue;
+    
+    if (entry.mode === 'upgrade') {
+      player.completedRoles.push(entry.role.id + '_full');
+    } else {
+      player.completedRoles.push(entry.role.id);
+    }
+  }
+  player.koikoi = true;
+  player.koikoiCount += 1;
+  
+  hideModal('roleModal');
+  showKoikoiBanner();
+  
+  const names = pendingNewRoles
+    .filter(e => selectedRoleIds.includes(e.role.id + (e.mode === 'upgrade' ? '_full' : '')))
+    .map(e => e.role.name + (e.mode === 'upgrade' ? '（完全）' : ''))
+    .join('、');
+  log(`${names} 確定。こいこい！(${player.koikoiCount}回目, 上がり時+${player.koikoiCount * KOIKOI_BONUS_PER_COUNT}点)`);
+  
+  // 処理完了：保留中の役リストをクリア（次回視点切替時に誤って開かないように）
+  pendingNewRoles = [];
+  selectedRoleIds = [];
+  
+  // 即座にターン終了（バナーは並行で表示される）
+  endTurn();
+}
+
+function showKoikoiBanner() {
+  const banner = document.getElementById('koikoiBanner');
+  banner.classList.add('show');
+  setTimeout(() => banner.classList.remove('show'), 1200);
+}
+
+// テスト用：視点を切り替える（オンライン化前の交互プレイ用）
+// ローカルテスト中は、視点を切り替えて両プレイヤーを操作する
+function switchViewpoint() {
+  myPlayerIndex = 1 - myPlayerIndex;
+  log(`視点を「${myPlayerIndex === 0 ? '一の人' : '二の人'}」に切り替えました。`);
+  
+  // 自分の手番で配置モーダルを開くべき状況なら開く
+  if (state.currentPlayer === myPlayerIndex && state.pendingCaptures.length > 0 && !document.getElementById('placeModal').classList.contains('active')) {
+    openPlaceModal();
+  }
+  
+  // 自分の手番で役モーダルを開くべき状況なら開く
+  if (state.currentPlayer === myPlayerIndex && pendingNewRoles && pendingNewRoles.length > 0 && !document.getElementById('roleModal').classList.contains('active')) {
+    showRoleModal(pendingNewRoles);
+  }
+  
+  render();
+}
+
+// ============================================================
+// ターン終了
+// ============================================================
+function endTurn() {
+  if (state.players[0].hand.length === 0 && state.players[1].hand.length === 0) {
+    endRound('hand_empty');
+    return;
+  }
+  if (state.deck.length === 0 && state.players[0].hand.length === 0 && state.players[1].hand.length === 0) {
+    endRound('deck_empty');
+    return;
+  }
+  
+  state.currentPlayer = 1 - state.currentPlayer;
+  state.phase = 'play_hand';
+  state.selectedHandCard = null;
+  log(`${state.currentPlayer === 0 ? '一' : '二'}の人の番です。`);
+  render();
+  
+  // CPUの手番ならCPUを起動
+  scheduleCpuTurnIfNeeded();
+}
+
+function endRound(reason) {
+  state.gameOver = true;
+  finishCurrentRound('round_end');
+}
+
+// ラウンド終了処理（上がり / 手札切れ 両方から呼ばれる）
+// title, subtitle はラウンド終了画面に表示する内容
+function finishCurrentRound(cause, agariInfo) {
+  state.gameOver = true;
+  
+  // このラウンドの得点を累計に加算
+  cumulativeScores[0] += state.players[0].score;
+  cumulativeScores[1] += state.players[1].score;
+  
+  // 最終ラウンドかチェック
+  const isFinalRound = currentRound >= totalRounds;
+  
+  // タイトルとサブタイトル決定
+  let title, subtitle;
+  if (cause === 'agari') {
+    title = agariInfo.title;
+    subtitle = agariInfo.subtitle;
+  } else {
+    // 手札切れ、引き分け
+    if (state.players[0].score > state.players[1].score) {
+      title = '一の人がラウンド勝利';
+    } else if (state.players[1].score > state.players[0].score) {
+      title = (gameMode === 'cpu') ? 'CPUがラウンド勝利' : '二の人がラウンド勝利';
+    } else {
+      title = '引き分け';
+    }
+    subtitle = `今ラウンド: ${state.players[0].score} - ${state.players[1].score}`;
+  }
+  
+  showRoundEndScreen(title, subtitle, isFinalRound);
+}
+
+function showRoundEndScreen(title, subtitle, isFinalRound) {
+  document.getElementById('endTitle').textContent = isFinalRound 
+    ? '最終結果' 
+    : `${currentRound}/${totalRounds} ラウンド終了`;
+  
+  const opponentLabel = (gameMode === 'cpu') ? 'CPU' : '二の人';
+  let html = '';
+  
+  if (!isFinalRound) {
+    // 中間ラウンド：このラウンドの結果と現在の累計
+    html += `<div style="margin-bottom: 12px; color: var(--gold-bright); font-weight: 700;">${title}</div>`;
+    if (subtitle) html += `<div style="margin-bottom: 16px; font-size: 0.9rem;">${subtitle}</div>`;
+    html += `<div style="font-family: 'JetBrains Mono', monospace; font-size: 0.95rem; line-height: 1.8;">`;
+    html += `<div>一の人: 今R ${state.players[0].score} 点 / 累計 <span style="color: var(--vermilion); font-weight: 700;">${cumulativeScores[0]}</span> 点</div>`;
+    html += `<div>${opponentLabel}: 今R ${state.players[1].score} 点 / 累計 <span style="color: var(--vermilion); font-weight: 700;">${cumulativeScores[1]}</span> 点</div>`;
+    html += `</div>`;
+  } else {
+    // 最終ラウンド：総合勝者発表
+    html += `<div style="margin-bottom: 12px; font-size: 0.9rem;">${title}</div>`;
+    html += `<div style="font-family: 'JetBrains Mono', monospace; font-size: 1rem; line-height: 1.8; margin: 16px 0;">`;
+    html += `<div>一の人: 累計 <span style="color: var(--gold-bright); font-weight: 700;">${cumulativeScores[0]}</span> 点</div>`;
+    html += `<div>${opponentLabel}: 累計 <span style="color: var(--gold-bright); font-weight: 700;">${cumulativeScores[1]}</span> 点</div>`;
+    html += `</div>`;
+    
+    let winnerText;
+    if (cumulativeScores[0] > cumulativeScores[1]) {
+      winnerText = '一の人の勝利！';
+    } else if (cumulativeScores[1] > cumulativeScores[0]) {
+      winnerText = (gameMode === 'cpu') ? 'CPUの勝利' : '二の人の勝利！';
+    } else {
+      winnerText = '引き分け';
+    }
+    html += `<div style="font-size: 1.4rem; color: var(--vermilion); font-weight: 700; letter-spacing: 0.2em; margin-top: 12px;">${winnerText}</div>`;
+  }
+  
+  document.getElementById('endResult').innerHTML = html;
+  
+  // 役一覧
+  const rolesDiv = document.getElementById('endRoles');
+  rolesDiv.innerHTML = '';
+  state.players.forEach((p, i) => {
+    if (p.completedRoles.length > 0) {
+      const names = p.completedRoles.map(id => {
+        const baseId = id.replace(/_full$/, '');
+        const r = ROLE_BY_ID[baseId];
+        if (!r) return id;
+        return r.name + (id.endsWith('_full') ? '（完全）' : '');
+      }).join('、');
+      const label = i === 0 ? '一の人' : opponentLabel;
+      rolesDiv.innerHTML += `<div style="margin: 6px 0; font-size: 0.85rem;"><strong>${label}</strong>の役: ${names}</div>`;
+    }
+  });
+  
+  // ボタン：次ラウンド or 終了
+  const modal = document.getElementById('endModal');
+  // 既存のbutton(もう一度)を消して、状況に応じたボタンを作る
+  const existingBtn = modal.querySelector('button');
+  if (existingBtn) existingBtn.remove();
+  
+  const btn = document.createElement('button');
+  btn.className = 'primary';
+  if (isFinalRound) {
+    btn.textContent = 'メニューに戻る';
+    btn.onclick = () => {
+      hideModal('endModal');
+      backToMenu();
+    };
+  } else {
+    btn.textContent = `次のラウンドへ（${currentRound + 1}/${totalRounds}）`;
+    btn.onclick = () => {
+      hideModal('endModal');
+      currentRound++;
+      newGame();
+    };
+  }
+  modal.querySelector('.modal').appendChild(btn);
+  
+  showModal('endModal');
+}
+
+// 上がり時に呼ばれる（旧 showEndScreen の置き換え）
+function showEndScreen(title, subtitle) {
+  state.gameOver = true;
+  finishCurrentRound('agari', { title, subtitle });
+}
+
+// ============================================================
+// CPU AI（ランダム判断）
+// ============================================================
+let cpuActionTimer = null;
+const CPU_ACTION_DELAY = 800; // CPU の各操作の間隔(ms)
+
+// CPU の手番なら起動。手番でなければ何もしない
+function scheduleCpuTurnIfNeeded() {
+  if (gameMode !== 'cpu') return;
+  if (state.gameOver) return;
+  
+  // CPU はプレイヤー1（インデックス1）固定。state.currentPlayer === 1 の時に動く
+  if (state.currentPlayer !== 1) return;
+  
+  // すでにタイマー走ってたらキャンセル
+  if (cpuActionTimer) clearTimeout(cpuActionTimer);
+  
+  // 一定時間後にCPUの手を打つ
+  cpuActionTimer = setTimeout(() => {
+    cpuActionTimer = null;
+    cpuPlayHand();
+  }, CPU_ACTION_DELAY);
+}
+
+// CPU：手札から1枚ランダム選択 → 場とのマッチを処理
+function cpuPlayHand() {
+  if (gameMode !== 'cpu' || state.currentPlayer !== 1 || state.gameOver) return;
+  if (state.phase !== 'play_hand') return;
+  
+  const cpu = state.players[1];
+  if (cpu.hand.length === 0) {
+    endTurn();
+    return;
+  }
+  
+  // ランダムに手札を1枚選ぶ
+  const handCard = cpu.hand[Math.floor(Math.random() * cpu.hand.length)];
+  log(`CPU: ${handCard.symbol} を出します。`);
+  
+  // 場とのマッチをチェック
+  const matches = findMatches(handCard, state.field);
+  
+  if (matches.length === 0) {
+    // 場に置く
+    cpu.hand = cpu.hand.filter(c => c.id !== handCard.id);
+    state.field.push(handCard);
+    log(`CPU: ${handCard.symbol} を場に置きました。`);
+    render();
+    
+    cpuActionTimer = setTimeout(() => {
+      cpuActionTimer = null;
+      cpuDrawFromDeck();
+    }, CPU_ACTION_DELAY);
+  } else {
+    // マッチあり → ランダムに1枚選んで取る
+    const fieldCard = matches[Math.floor(Math.random() * matches.length)];
+    cpu.hand = cpu.hand.filter(c => c.id !== handCard.id);
+    state.field = state.field.filter(c => c.id !== fieldCard.id);
+    state.pendingCaptures.push(handCard, fieldCard);
+    log(`CPU: ${handCard.symbol} で場の ${fieldCard.symbol} を取りました。`);
+    render();
+    
+    cpuActionTimer = setTimeout(() => {
+      cpuActionTimer = null;
+      cpuDrawFromDeck();
+    }, CPU_ACTION_DELAY);
+  }
+}
+
+// CPU：山札からめくる
+function cpuDrawFromDeck() {
+  if (gameMode !== 'cpu' || state.currentPlayer !== 1 || state.gameOver) return;
+  
+  if (state.deck.length === 0) {
+    cpuFinishCaptures();
+    return;
+  }
+  
+  const drawn = state.deck.pop();
+  state.drawnCard = drawn;
+  const matches = findMatches(drawn, state.field);
+  log(`CPU: 山札から ${drawn.symbol}。`);
+  render();
+  
+  cpuActionTimer = setTimeout(() => {
+    cpuActionTimer = null;
+    if (matches.length === 0) {
+      // 場に置く
+      state.field.push(drawn);
+      state.drawnCard = null;
+      log(`CPU: ${drawn.symbol} を場に置きました。`);
+      render();
+      cpuActionTimer = setTimeout(() => {
+        cpuActionTimer = null;
+        cpuFinishCaptures();
+      }, CPU_ACTION_DELAY);
+    } else {
+      // ランダムに取る
+      const fieldCard = matches[Math.floor(Math.random() * matches.length)];
+      state.field = state.field.filter(c => c.id !== fieldCard.id);
+      state.pendingCaptures.push(drawn, fieldCard);
+      state.drawnCard = null;
+      log(`CPU: 山札の ${drawn.symbol} で場の ${fieldCard.symbol} を取りました。`);
+      render();
+      cpuActionTimer = setTimeout(() => {
+        cpuActionTimer = null;
+        cpuFinishCaptures();
+      }, CPU_ACTION_DELAY);
+    }
+  }, 1000);
+}
+
+// CPU：取った札の配置（モーダルの代わりにロジックで処理）
+function cpuFinishCaptures() {
+  if (gameMode !== 'cpu' || state.currentPlayer !== 1 || state.gameOver) return;
+  
+  // 場札補充
+  refillFieldIfNeeded();
+  
+  const cpu = state.players[1];
+  const captures = [...state.pendingCaptures];
+  const pendings = [...cpu.pending];
+  
+  // 配置候補を作成（取得札+ペンディング札それぞれについて、配置可能な役の候補）
+  // 「役に置くのは2枚まで」制限を考慮しつつランダムに配置
+  
+  // まずペンディングをリセット
+  cpu.pending = [];
+  
+  // 全候補札のリスト（取得+ペンディング）
+  const allCards = [...captures, ...pendings];
+  
+  // ランダムに2枚を選んで「役に配置試行」
+  const shuffled = [...allCards].sort(() => Math.random() - 0.5);
+  let placedCount = 0;
+  const placedSet = new Set();
+  
+  for (const card of shuffled) {
+    if (placedCount >= PLACE_LIMIT_PER_TURN) break;
+    
+    const placeable = getPlaceableRoles(cpu, card);
+    if (placeable.length === 0) continue;
+    
+    // ランダムに役を選ぶ
+    const role = placeable[Math.floor(Math.random() * placeable.length)];
+    placeCardInSlot(cpu, card, role.id);
+    placedSet.add(card.id);
+    placedCount++;
+    log(`CPU: ${card.symbol} を「${role.name}」に配置。`);
+  }
+  
+  // 残りはペンディングへ
+  for (const card of allCards) {
+    if (!placedSet.has(card.id)) {
+      cpu.pending.push(card);
+    }
+  }
+  
+  state.pendingCaptures = [];
+  render();
+  
+  cpuActionTimer = setTimeout(() => {
+    cpuActionTimer = null;
+    cpuCheckRoles();
+  }, CPU_ACTION_DELAY);
+}
+
+// CPU：役の成立判定と上がり/こいこい判断
+function cpuCheckRoles() {
+  if (gameMode !== 'cpu' || state.currentPlayer !== 1 || state.gameOver) return;
+  
+  const cpu = state.players[1];
+  const newRoles = [];
+  
+  for (const role of ROLES) {
+    if (cpu.completedRoles.includes(role.id) && !role.extensible) continue;
+    if (!hasSlot(cpu, role.id)) continue;
+    
+    if (role.extensible) {
+      const progress = slotProgress(cpu, role.id);
+      if (progress.filled < 3) continue;
+      const wasCompleted = cpu.completedRoles.includes(role.id);
+      if (!wasCompleted) {
+        newRoles.push({ role, mode: 'new', currentPoints: getRoleCurrentPoints(cpu, role.id) });
+      } else {
+        if (progress.filled === 6 && !cpu.completedRoles.includes(role.id + '_full')) {
+          newRoles.push({ role, mode: 'upgrade', currentPoints: role.completePoints });
+        }
+      }
+    } else {
+      if (isSlotComplete(cpu, role.id)) {
+        newRoles.push({ role, mode: 'new', currentPoints: role.points });
+      }
+    }
+  }
+  
+  if (newRoles.length === 0) {
+    // 役なし、ターン終了
+    endTurn();
+    return;
+  }
+  
+  // 役成立 → 上がり or こいこい をランダム判断
+  const totalPoints = newRoles.reduce((sum, e) => {
+    if (e.mode === 'upgrade') return sum + (e.currentPoints - e.role.points);
+    return sum + e.currentPoints;
+  }, 0);
+  
+  // 5点未満なら必ずこいこい
+  // 5点以上なら 50% 上がり、50% こいこい（ランダム判断）
+  const canAgari = totalPoints >= 5;
+  const willAgari = canAgari && Math.random() < 0.5;
+  
+  if (willAgari) {
+    // 上がり処理
+    let points = 0;
+    const announcedNames = [];
+    for (const entry of newRoles) {
+      if (entry.mode === 'upgrade') {
+        points += (entry.currentPoints - entry.role.points);
+        cpu.completedRoles.push(entry.role.id + '_full');
+        announcedNames.push(entry.role.name + '（完全）');
+      } else {
+        points += entry.currentPoints;
+        cpu.completedRoles.push(entry.role.id);
+        announcedNames.push(entry.role.name);
+      }
+    }
+    let bonusText = '';
+    if (cpu.koikoiCount > 0) {
+      const bonus = cpu.koikoiCount * KOIKOI_BONUS_PER_COUNT;
+      points += bonus;
+      bonusText = `（こいこい${cpu.koikoiCount}回 +${bonus}点）`;
+    }
+    cpu.score += points;
+    log(`CPU: ${announcedNames.join('、')} ${bonusText} で上がり！${points}点`);
+    showEndScreen(`CPUの上がり！`, `${announcedNames.join('、')} ${bonusText} で ${points}点`);
+  } else {
+    // こいこい処理
+    for (const entry of newRoles) {
+      if (entry.mode === 'upgrade') {
+        cpu.completedRoles.push(entry.role.id + '_full');
+      } else {
+        cpu.completedRoles.push(entry.role.id);
+      }
+    }
+    cpu.koikoi = true;
+    cpu.koikoiCount += 1;
+    const names = newRoles.map(e => e.role.name + (e.mode === 'upgrade' ? '（完全）' : '')).join('、');
+    log(`CPU: ${names} 確定。こいこい！(${cpu.koikoiCount}回目)`);
+    showKoikoiBanner();
+    endTurn();
+  }
+}
+
+// ============================================================
+// 描画
+// ============================================================
+function valenceClass(v) {
+  if (v === '+1') return 'v-plus1';
+  if (v === '+2典型') return 'v-plus2-typical';
+  if (v === '+2遷移') return 'v-plus2-transition';
+  if (v === '+3') return 'v-plus3';
+  if (v === '+4') return 'v-plus4';
+  return '';
+}
+
+function renderCard(card, options = {}) {
+  const div = document.createElement('div');
+  div.className = 'card';
+  if (options.selected) div.classList.add('selected');
+  if (options.matchable) div.classList.add('matchable');
+  if (options.faceDown) {
+    div.classList.add('card-back');
+    return div;
+  }
+  
+  const symbol = document.createElement('div');
+  symbol.className = 'card-symbol';
+  symbol.textContent = card.symbol;
+  div.appendChild(symbol);
+  
+  const valences = document.createElement('div');
+  valences.className = 'card-valences';
+  card.valences.forEach(v => {
+    const tag = document.createElement('div');
+    tag.className = 'valence-tag ' + valenceClass(v);
+    tag.textContent = v;
+    valences.appendChild(tag);
+  });
+  div.appendChild(valences);
+  
+  if (options.onClick) div.onclick = options.onClick;
+  return div;
+}
+
+function renderSlot(player, role) {
+  const div = document.createElement('div');
+  div.className = 'slot';
+  const progress = slotProgress(player, role.id);
+  if (isSlotComplete(player, role.id)) div.classList.add('complete');
+  
+  const name = document.createElement('div');
+  name.className = 'slot-name';
+  name.textContent = role.name;
+  div.appendChild(name);
+  
+  const cards = document.createElement('div');
+  cards.className = 'slot-mini-cards';
+  for (const e of role.elements) {
+    const m = document.createElement('div');
+    m.className = 'slot-mini-card';
+    if (player.slots[role.id] && player.slots[role.id][e]) {
+      m.textContent = e;
+    } else {
+      m.classList.add('empty');
+      m.textContent = e;
+    }
+    cards.appendChild(m);
+  }
+  div.appendChild(cards);
+  
+  const prog = document.createElement('div');
+  prog.className = 'slot-progress';
+  prog.textContent = `${progress.filled}/${progress.total}`;
+  div.appendChild(prog);
+  
+  const pts = document.createElement('div');
+  pts.className = 'slot-points';
+  if (role.extensible) {
+    const cur = getRoleCurrentPoints(player, role.id);
+    pts.textContent = `${cur}点`;
+  } else {
+    pts.textContent = `${role.points}点`;
+  }
+  div.appendChild(pts);
+  
+  return div;
+}
+
+function render() {
+  const oppIdx = 1 - myPlayerIndex;
+  const isMyTurn = state.currentPlayer === myPlayerIndex && !state.gameOver;
+  const isOppTurn = state.currentPlayer === oppIdx && !state.gameOver;
+  
+  // ラウンド表示
+  const roundEl = document.getElementById('roundIndicator');
+  if (roundEl) {
+    roundEl.textContent = `ラウンド ${currentRound} / ${totalRounds}`;
+  }
+  
+  // アクティブ表示（手番のプレイヤー）
+  document.getElementById('selfArea').classList.toggle('active', isMyTurn);
+  document.getElementById('opponentArea').classList.toggle('active', isOppTurn);
+  
+  // プレイヤー名
+  document.getElementById('selfName').textContent = `自分（${myPlayerIndex === 0 ? '一の人' : '二の人'}）`;
+  document.getElementById('opponentName').textContent = gameMode === 'cpu' 
+    ? 'CPU' 
+    : `相手（${oppIdx === 0 ? '一の人' : '二の人'}）`;
+  
+  // 自分の手札（表向き、操作可能）
+  const selfHand = document.getElementById('selfHand');
+  selfHand.innerHTML = '';
+  state.players[myPlayerIndex].hand.forEach(card => {
+    const clickable = isMyTurn && (state.phase === 'play_hand' || state.phase === 'match_hand');
+    const isSelected = state.selectedHandCard && state.selectedHandCard.id === card.id;
+    const div = renderCard(card, {
+      selected: isSelected,
+      onClick: clickable ? () => selectHandCard(card.id) : null,
+    });
+    selfHand.appendChild(div);
+  });
+  
+  // 相手の手札（裏向き、枚数のみ）
+  const opponentHand = document.getElementById('opponentHand');
+  opponentHand.innerHTML = '';
+  state.players[oppIdx].hand.forEach(() => {
+    opponentHand.appendChild(renderCard(null, { faceDown: true }));
+  });
+  
+  // 場札（自分の手番のときのみクリック可）
+  const fieldCards = document.getElementById('fieldCards');
+  fieldCards.innerHTML = '';
+  state.field.forEach(card => {
+    let matchable = false;
+    if (isMyTurn && (state.phase === 'match_hand' || state.phase === 'match_draw')) {
+      const ref = state.phase === 'match_hand' ? state.selectedHandCard : state.drawnCard;
+      if (ref && canMatch(ref, card)) matchable = true;
+    }
+    const div = renderCard(card, {
+      matchable,
+      onClick: matchable ? () => selectFieldCard(card.id) : null,
+    });
+    fieldCards.appendChild(div);
+  });
+  
+  document.getElementById('deckCount').textContent = state.deck.length + '枚';
+  document.getElementById('fieldCount').textContent = state.field.length + '枚';
+  document.getElementById('deckLabel').textContent = `山札 ${state.deck.length}`;
+  
+  // めくり札
+  const drawnSlot = document.getElementById('drawnSlot');
+  drawnSlot.innerHTML = '';
+  if (state.drawnCard) {
+    drawnSlot.appendChild(renderCard(state.drawnCard, {}));
+  }
+  
+  // 得点
+  document.getElementById('selfScore').textContent = `${state.players[myPlayerIndex].score}（累計${cumulativeScores[myPlayerIndex] + state.players[myPlayerIndex].score}）`;
+  document.getElementById('opponentScore').textContent = `${state.players[oppIdx].score}（累計${cumulativeScores[oppIdx] + state.players[oppIdx].score}）`;
+  
+  // スロット表示
+  const renderSlots = (containerId, playerIdx) => {
+    const div = document.getElementById(containerId);
+    div.innerHTML = '';
+    const player = state.players[playerIdx];
+    for (const role of ROLES) {
+      if (!hasSlot(player, role.id)) continue;
+      const progress = slotProgress(player, role.id);
+      if (progress.filled === 0) continue;
+      div.appendChild(renderSlot(player, role));
+    }
+  };
+  renderSlots('selfSlots', myPlayerIndex);
+  renderSlots('opponentSlots', oppIdx);
+  
+  // ペンディング表示
+  const renderPending = (containerId, playerIdx) => {
+    const div = document.getElementById(containerId);
+    div.innerHTML = '';
+    state.players[playerIdx].pending.forEach(card => {
+      div.appendChild(renderCard(card, {}));
+    });
+  };
+  renderPending('selfPending', myPlayerIndex);
+  renderPending('opponentPending', oppIdx);
+  
+  // アクションバー（自分の手番のときのみ）
+  const actionBar = document.getElementById('actionBar');
+  actionBar.innerHTML = '';
+  if (isMyTurn && state.phase === 'match_hand' && state.selectedHandCard) {
+    const card = state.selectedHandCard;
+    const matches = findMatches(card, state.field);
+    if (matches.length === 0) {
+      const info = document.createElement('span');
+      info.className = 'action-info';
+      info.textContent = `${card.symbol} は場に取れる札がありません。`;
+      actionBar.appendChild(info);
+      
+      const placeBtn = document.createElement('button');
+      placeBtn.className = 'primary';
+      placeBtn.textContent = '場に置く';
+      placeBtn.onclick = placeSelectedCardOnField;
+      actionBar.appendChild(placeBtn);
+      
+      const cancelBtn = document.createElement('button');
+      cancelBtn.textContent = 'キャンセル';
+      cancelBtn.onclick = () => selectHandCard(card.id);
+      actionBar.appendChild(cancelBtn);
+    } else {
+      const info = document.createElement('span');
+      info.className = 'action-info';
+      info.textContent = `${card.symbol} で取れる場札を選んでください。`;
+      actionBar.appendChild(info);
+      
+      const cancelBtn = document.createElement('button');
+      cancelBtn.textContent = '選択を取り消す';
+      cancelBtn.onclick = () => selectHandCard(card.id);
+      actionBar.appendChild(cancelBtn);
+    }
+  } else if (isMyTurn && state.phase === 'match_draw' && state.drawnCard) {
+    const info = document.createElement('span');
+    info.className = 'action-info';
+    info.textContent = `めくり札 ${state.drawnCard.symbol} で取る場札を選んでください。`;
+    actionBar.appendChild(info);
+  } else if (isOppTurn) {
+    const info = document.createElement('span');
+    info.className = 'action-info';
+    info.textContent = gameMode === 'cpu' ? 'CPUが考えています...' : '相手の手番です。お待ちください...';
+    actionBar.appendChild(info);
+  }
+  
+  renderRoleList();
+}
+
+function renderRoleList() {
+  const list = document.getElementById('roleList');
+  list.innerHTML = '';
+  
+  const completedSet = new Set([
+    ...state.players[0].completedRoles,
+    ...state.players[1].completedRoles,
+  ]);
+  
+  ROLES.forEach(role => {
+    const div = document.createElement('div');
+    div.className = 'role-item';
+    if (completedSet.has(role.id)) div.classList.add('completed');
+    const points = role.extensible 
+      ? `${role.points}-${role.completePoints}`
+      : role.points;
+    div.innerHTML = `
+      <div>
+        <div class="role-name">${role.name}</div>
+        <span class="role-formula">${role.formula}</span>
+      </div>
+      <div class="role-points">${points}</div>
+    `;
+    list.appendChild(div);
+  });
+}
+
+// ============================================================
+// UI ヘルパー
+// ============================================================
+function log(msg) {
+  document.getElementById('messageLog').innerHTML = 
+    `<span class="turn-label">${state.currentPlayer === 0 ? '[一]' : '[二]'}</span> ${msg}`;
+}
+
+function showModal(id) {
+  document.getElementById(id).classList.add('active');
+}
+
+function hideModal(id) {
+  document.getElementById(id).classList.remove('active');
+}
+
+function toggleRoleList() {
+  const sb = document.getElementById('sidebar');
+  sb.style.display = sb.style.display === 'none' ? 'block' : 'none';
+}
+
+function toggleHelp() {
+  alert(
+`【遊び方 v2 スロット版】
+
+1. 手札から札を1枚クリックして選択。
+2. 場に同じ価数の札があれば、光る札を選んで取る。
+   ・なければ「場に置く」ボタンで流す。
+3. 山札から1枚自動でめくられる。同様に処理。
+4. 札を取った瞬間、その札をどの役のどのマスに入れるか
+   選ぶモーダルが開く。
+   ・各札について「○○の役」または「保留」を選択。
+   ・保留中の札も同時に役に配置できる。
+   ・1ターンで役に置けるのは合計2枚まで。
+     （新規取得＋保留からの配置を合算）
+     残りは強制的に保留行きになる。
+5. 役のスロットが全マス埋まったら成立！
+   ・上がるかこいこいか選ぶ（5点以上で上がり可）。
+   ・こいこい1回ごとに上がり時+3点ボーナス。
+
+【炎色反応の特例】
+6マスのスロットで、3マス埋まると基本5点で成立。
+こいこい中に追加で配置でき、6マス全部埋まれば
+完全10点に格上げできる。
+
+【保留札（ペンディング）】
+取った札の配置先を決めかねたら保留に。
+ただし保留札を役に動かせるのは「次に新しい札を取った時」
+だけ。何もしないターンでは保留札は凍結。
+溜め込みすぎると相手に先に上がられる。
+
+【スロットの不可逆性】
+一度どの役のマスに入れた札は、別の役には移せない。
+1枚の札は1つのマスにのみ使える。`
+  );
+}
+
+// 起動時はメニュー画面を表示するのみ（newGameはメニューから呼ばれる）
+// 内部状態を最初に整えるため、空のゲーム状態だけは作っておく
+state = {
+  deck: [],
+  field: [],
+  players: [newPlayer(), newPlayer()],
+  currentPlayer: 0,
+  selectedHandCard: null,
+  phase: 'play_hand',
+  drawnCard: null,
+  pendingCaptures: [],
+  gameOver: false,
+};
 </script>
 </body>
 </html>
