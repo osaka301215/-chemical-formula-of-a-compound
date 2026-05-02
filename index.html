@@ -959,6 +959,30 @@ aside h2 {
   </div>
 </div>
 
+<!-- 先攻決定演出オーバーレイ -->
+<div class="modal-overlay" id="ceremonyOverlay">
+  <div style="text-align: center; max-width: 600px; width: 90%;">
+    <div id="ceremonyTitle" style="font-family: 'Shippori Mincho', serif; font-size: 1.4rem; color: var(--gold-bright); letter-spacing: 0.3em; margin-bottom: 24px;">
+      先 攻 決 定
+    </div>
+    <div id="ceremonyCards" style="display: flex; gap: 40px; justify-content: center; align-items: center;">
+      <div style="text-align: center;">
+        <div style="font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; color: var(--gold); letter-spacing: 0.2em; margin-bottom: 8px;" id="ceremonyLabelA">一の人</div>
+        <div id="ceremonyCardA"></div>
+      </div>
+      <div style="font-size: 1.5rem; color: var(--vermilion); font-weight: 700;">VS</div>
+      <div style="text-align: center;">
+        <div style="font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; color: var(--gold); letter-spacing: 0.2em; margin-bottom: 8px;" id="ceremonyLabelB">二の人</div>
+        <div id="ceremonyCardB"></div>
+      </div>
+    </div>
+    <div id="ceremonyResult" style="margin-top: 24px; font-family: 'Shippori Mincho', serif; font-size: 1.1rem; color: var(--vermilion); letter-spacing: 0.2em; min-height: 30px; font-weight: 700;"></div>
+    <div style="margin-top: 16px;">
+      <button onclick="skipCeremony()" style="font-size: 0.75rem;">スキップ</button>
+    </div>
+  </div>
+</div>
+
 <!-- スタート画面 -->
 <div class="modal-overlay active" id="startScreen" style="background: var(--bg-deep);">
   <div style="text-align: center; max-width: 500px; width: 90%;">
@@ -1104,23 +1128,23 @@ aside h2 {
 // 元素データ
 // ============================================================
 const ELEMENTS = {
-  Li: { name: 'Li', valences: ['+1'], count: 3 },
-  Na: { name: 'Na', valences: ['+1'], count: 3 },
-  K:  { name: 'K',  valences: ['+1'], count: 3 },
-  Mg: { name: 'Mg', valences: ['+2典型'], count: 3 },
-  Ca: { name: 'Ca', valences: ['+2典型'], count: 3 },
-  Ba: { name: 'Ba', valences: ['+2典型'], count: 3 },
-  Al: { name: 'Al', valences: ['+3'], count: 4 },
-  Zn: { name: 'Zn', valences: ['+2典型'], count: 4 },
-  Sn: { name: 'Sn', valences: ['+2典型', '+4'], count: 4 },
-  Pb: { name: 'Pb', valences: ['+2典型', '+4'], count: 4 },
-  Fe: { name: 'Fe', valences: ['+2遷移', '+3'], count: 4 },
-  Cu: { name: 'Cu', valences: ['+1', '+2遷移'], count: 4 },
-  Cr: { name: 'Cr', valences: ['+3'], count: 3 },
-  Ni: { name: 'Ni', valences: ['+2遷移'], count: 2 },
-  Ag: { name: 'Ag', valences: ['+1'], count: 4 },
-  Au: { name: 'Au', valences: ['+1', '+3'], count: 2 },
-  Pt: { name: 'Pt', valences: ['+4'], count: 2 },
+  Li: { name: 'Li', valences: ['+1'],            count: 3, atomicNumber: 3 },
+  Na: { name: 'Na', valences: ['+1'],            count: 3, atomicNumber: 11 },
+  K:  { name: 'K',  valences: ['+1'],            count: 3, atomicNumber: 19 },
+  Mg: { name: 'Mg', valences: ['+2典型'],        count: 3, atomicNumber: 12 },
+  Ca: { name: 'Ca', valences: ['+2典型'],        count: 3, atomicNumber: 20 },
+  Ba: { name: 'Ba', valences: ['+2典型'],        count: 3, atomicNumber: 56 },
+  Al: { name: 'Al', valences: ['+3'],            count: 4, atomicNumber: 13 },
+  Zn: { name: 'Zn', valences: ['+2典型'],        count: 4, atomicNumber: 30 },
+  Sn: { name: 'Sn', valences: ['+2典型', '+4'],  count: 4, atomicNumber: 50 },
+  Pb: { name: 'Pb', valences: ['+2典型', '+4'],  count: 4, atomicNumber: 82 },
+  Fe: { name: 'Fe', valences: ['+2遷移', '+3'],  count: 4, atomicNumber: 26 },
+  Cu: { name: 'Cu', valences: ['+1', '+2遷移'],  count: 4, atomicNumber: 29 },
+  Cr: { name: 'Cr', valences: ['+3'],            count: 3, atomicNumber: 24 },
+  Ni: { name: 'Ni', valences: ['+2遷移'],        count: 2, atomicNumber: 28 },
+  Ag: { name: 'Ag', valences: ['+1'],            count: 4, atomicNumber: 47 },
+  Au: { name: 'Au', valences: ['+1', '+3'],      count: 2, atomicNumber: 79 },
+  Pt: { name: 'Pt', valences: ['+4'],            count: 2, atomicNumber: 78 },
 };
 
 // ============================================================
@@ -1168,10 +1192,26 @@ function createDeck() {
         id: id++,
         symbol: symbol,
         valences: [...info.valences],
+        atomicNumber: info.atomicNumber,
       });
     }
   }
   return deck;
+}
+
+// 手札をソートする（価数順 → 元素アルファベット順）
+const VALENCE_ORDER = ['+1', '+2典型', '+2遷移', '+3', '+4'];
+function sortHand(hand) {
+  return hand.sort((a, b) => {
+    // 主要な価数で比較（複数価数の場合は最小のもの = 先頭）
+    const va = a.valences[0];
+    const vb = b.valences[0];
+    const ordA = VALENCE_ORDER.indexOf(va);
+    const ordB = VALENCE_ORDER.indexOf(vb);
+    if (ordA !== ordB) return ordA - ordB;
+    // 同じ価数なら元素のアルファベット順
+    return a.symbol.localeCompare(b.symbol);
+  });
 }
 
 function shuffle(arr) {
@@ -1221,6 +1261,7 @@ function startGame(mode) {
   myPlayerIndex = 0;
   currentRound = 1;
   cumulativeScores = [0, 0];
+  lastRoundWinner = null;  // 1ラウンド目は先攻決定演出
   
   // メニュー画面を閉じる
   document.getElementById('startScreen').classList.remove('active');
@@ -1241,11 +1282,32 @@ function backToMenu() {
     clearTimeout(cpuActionTimer);
     cpuActionTimer = null;
   }
+  // 演出タイマーもキャンセル
+  clearCeremonyTimers();
+  skipCeremonyRequested = false;
   
   hideModal('placeModal');
   hideModal('roleModal');
   hideModal('endModal');
+  hideCeremonyOverlay();
   document.getElementById('startScreen').classList.add('active');
+}
+
+// 前ラウンドの勝者（先攻決定用）
+// null: 先攻決定演出を実行
+// 0: プレイヤー0が前ラウンド勝者 → 1が先攻
+// 1: プレイヤー1が前ラウンド勝者 → 0が先攻
+let lastRoundWinner = null;
+
+// 開始演出のスキップ要求フラグ
+let skipCeremonyRequested = false;
+
+// 演出中の保留タイマー一覧（スキップで全部キャンセル）
+let ceremonyTimers = [];
+
+function clearCeremonyTimers() {
+  ceremonyTimers.forEach(t => clearTimeout(t));
+  ceremonyTimers = [];
 }
 
 function newGame() {
@@ -1256,35 +1318,165 @@ function newGame() {
     players: [newPlayer(), newPlayer()],
     currentPlayer: 0,
     selectedHandCard: null,
-    phase: 'play_hand', // play_hand → match_hand → match_draw → place
+    phase: 'ceremony', // ceremony中は操作不可
     drawnCard: null,
-    pendingCaptures: [], // このターンで取った札（場の取り札も含む）の配置待ちキュー
+    pendingCaptures: [],
     gameOver: false,
   };
 
+  // 手札を配る + ソート
   for (let i = 0; i < 7; i++) {
     state.players[0].hand.push(state.deck.pop());
     state.players[1].hand.push(state.deck.pop());
   }
-  for (let i = 0; i < FIELD_REFILL_TARGET; i++) {
-    if (state.deck.length === 0) break;
-    state.field.push(state.deck.pop());
-  }
+  state.players[0].hand = sortHand(state.players[0].hand);
+  state.players[1].hand = sortHand(state.players[1].hand);
+  
+  // ※ field は演出で1枚ずつ追加するので、ここでは空のまま
 
   hideModal('placeModal');
   hideModal('roleModal');
   hideModal('endModal');
   
-  // 役モーダル関連の状態もリセット
   pendingNewRoles = [];
   selectedRoleIds = [];
   placeModalState = null;
+  skipCeremonyRequested = false;
+  clearCeremonyTimers();
   
-  log('ゲーム開始。一の人の番です。');
   render();
   
-  // CPUの手番ならCPUを起動
+  // 演出フロー起動
+  runStartCeremony();
+}
+
+function runStartCeremony() {
+  // 先攻決定が必要かを判定
+  // - 1ラウンド目（lastRoundWinner === null）：先攻決定演出
+  // - 前ラウンドが引き分け：先攻決定演出
+  // - それ以外：前ラウンド負け側が先攻
+  if (lastRoundWinner === 'draw' || lastRoundWinner === null) {
+    runFirstPlayerCeremony(() => runFieldRevealCeremony(startActualGame));
+  } else {
+    // 前ラウンド勝者が分かっている → 負け側が先攻
+    state.currentPlayer = 1 - lastRoundWinner;
+    runFieldRevealCeremony(startActualGame);
+  }
+}
+
+// 先攻決定演出：山札の上から2枚を引いて、原子番号大きい方が先攻
+function runFirstPlayerCeremony(onDone) {
+  // 演出用に山札の上から2枚を取り出す（ゲームに使うわけではないので、後で山札に戻す）
+  if (state.deck.length < 2) {
+    // 山札が少ないとき（通常起きないが念のため）
+    state.currentPlayer = Math.floor(Math.random() * 2);
+    onDone();
+    return;
+  }
+  
+  // 山札から2枚取って表示用にする
+  const cardA = state.deck.pop(); // プレイヤー0用
+  const cardB = state.deck.pop(); // プレイヤー1用
+  
+  // 演出用stateにセット
+  state.ceremonyDraw = {
+    cardA: cardA, // プレイヤー0が引いた
+    cardB: cardB, // プレイヤー1が引いた
+    aRevealed: false,
+    bRevealed: false,
+    decided: false,
+  };
+  
+  showCeremonyOverlay();
+  log('先攻決定中...');
+  
+  // 0.8秒後にAをめくる、その後1秒後にBをめくる、その1秒後に判定発表、2秒後に終了
+  ceremonyTimers.push(setTimeout(() => {
+    if (skipCeremonyRequested) return finishFirstPlayerCeremony(cardA, cardB, onDone);
+    state.ceremonyDraw.aRevealed = true;
+    renderCeremonyOverlay();
+  }, 800));
+  
+  ceremonyTimers.push(setTimeout(() => {
+    if (skipCeremonyRequested) return finishFirstPlayerCeremony(cardA, cardB, onDone);
+    state.ceremonyDraw.bRevealed = true;
+    renderCeremonyOverlay();
+  }, 1700));
+  
+  ceremonyTimers.push(setTimeout(() => {
+    if (skipCeremonyRequested) return finishFirstPlayerCeremony(cardA, cardB, onDone);
+    state.ceremonyDraw.decided = true;
+    renderCeremonyOverlay();
+  }, 2500));
+  
+  ceremonyTimers.push(setTimeout(() => {
+    if (skipCeremonyRequested) return; // すでに finished
+    finishFirstPlayerCeremony(cardA, cardB, onDone);
+  }, 4000));
+}
+
+function finishFirstPlayerCeremony(cardA, cardB, onDone) {
+  clearCeremonyTimers();
+  // 原子番号比較
+  // 同じ場合（あり得ないが）はランダム
+  let firstPlayer;
+  if (cardA.atomicNumber > cardB.atomicNumber) {
+    firstPlayer = 0;
+  } else if (cardB.atomicNumber > cardA.atomicNumber) {
+    firstPlayer = 1;
+  } else {
+    firstPlayer = Math.floor(Math.random() * 2);
+  }
+  state.currentPlayer = firstPlayer;
+  
+  // 引いた2枚を山札に戻す（シャッフル）
+  state.deck.push(cardA, cardB);
+  state.deck = shuffle(state.deck);
+  
+  state.ceremonyDraw = null;
+  hideCeremonyOverlay();
+  log(`${firstPlayer === 0 ? '一の人' : (gameMode === 'cpu' ? 'CPU' : '二の人')}の先攻！`);
+  onDone();
+}
+
+// 場札展開演出：山札から8枚を1枚ずつ場にめくる
+function runFieldRevealCeremony(onDone) {
+  const targetCount = Math.min(FIELD_REFILL_TARGET, state.deck.length);
+  let i = 0;
+  
+  const revealOne = () => {
+    if (i >= targetCount || skipCeremonyRequested) {
+      // 残りを一気に追加
+      while (state.field.length < targetCount && state.deck.length > 0) {
+        state.field.push(state.deck.pop());
+      }
+      clearCeremonyTimers();
+      render();
+      onDone();
+      return;
+    }
+    if (state.deck.length === 0) {
+      onDone();
+      return;
+    }
+    state.field.push(state.deck.pop());
+    render();
+    i++;
+    ceremonyTimers.push(setTimeout(revealOne, 150));
+  };
+  
+  revealOne();
+}
+
+function startActualGame() {
+  state.phase = 'play_hand';
+  log(`${state.currentPlayer === 0 ? '一の人' : (gameMode === 'cpu' ? 'CPU' : '二の人')}の番です。`);
+  render();
   scheduleCpuTurnIfNeeded();
+}
+
+function skipCeremony() {
+  skipCeremonyRequested = true;
 }
 
 // ============================================================
@@ -2112,6 +2304,15 @@ function finishCurrentRound(cause, agariInfo) {
   // 最終ラウンドかチェック
   const isFinalRound = currentRound >= totalRounds;
   
+  // 今ラウンド勝者を記録（次ラウンドの先攻決定用）
+  if (state.players[0].score > state.players[1].score) {
+    lastRoundWinner = 0;
+  } else if (state.players[1].score > state.players[0].score) {
+    lastRoundWinner = 1;
+  } else {
+    lastRoundWinner = 'draw';
+  }
+  
   // タイトルとサブタイトル決定
   let title, subtitle;
   if (cause === 'agari') {
@@ -2228,6 +2429,7 @@ const CPU_ACTION_DELAY = 800; // CPU の各操作の間隔(ms)
 function scheduleCpuTurnIfNeeded() {
   if (gameMode !== 'cpu') return;
   if (state.gameOver) return;
+  if (state.phase !== 'play_hand') return; // 演出中などは動かない
   
   // CPU はプレイヤー1（インデックス1）固定。state.currentPlayer === 1 の時に動く
   if (state.currentPlayer !== 1) return;
@@ -2470,6 +2672,65 @@ function cpuCheckRoles() {
     log(`CPU: ${names} 確定。こいこい！(${cpu.koikoiCount}回目)`);
     showKoikoiBanner();
     endTurn();
+  }
+}
+
+// ============================================================
+// 先攻決定演出関連
+// ============================================================
+function showCeremonyOverlay() {
+  // ラベル更新
+  document.getElementById('ceremonyLabelA').textContent = '一の人';
+  document.getElementById('ceremonyLabelB').textContent = (gameMode === 'cpu') ? 'CPU' : '二の人';
+  document.getElementById('ceremonyResult').textContent = '';
+  
+  document.getElementById('ceremonyOverlay').classList.add('active');
+  renderCeremonyOverlay();
+}
+
+function hideCeremonyOverlay() {
+  document.getElementById('ceremonyOverlay').classList.remove('active');
+}
+
+function renderCeremonyOverlay() {
+  if (!state.ceremonyDraw) return;
+  
+  const slotA = document.getElementById('ceremonyCardA');
+  const slotB = document.getElementById('ceremonyCardB');
+  slotA.innerHTML = '';
+  slotB.innerHTML = '';
+  
+  if (state.ceremonyDraw.aRevealed) {
+    slotA.appendChild(renderCard(state.ceremonyDraw.cardA, {}));
+  } else {
+    slotA.appendChild(renderCard(null, { faceDown: true }));
+  }
+  
+  if (state.ceremonyDraw.bRevealed) {
+    slotB.appendChild(renderCard(state.ceremonyDraw.cardB, {}));
+  } else {
+    slotB.appendChild(renderCard(null, { faceDown: true }));
+  }
+  
+  // 判定発表
+  const resultEl = document.getElementById('ceremonyResult');
+  if (state.ceremonyDraw.decided) {
+    const a = state.ceremonyDraw.cardA;
+    const b = state.ceremonyDraw.cardB;
+    const oppLabel = (gameMode === 'cpu') ? 'CPU' : '二の人';
+    let txt;
+    if (a.atomicNumber > b.atomicNumber) {
+      txt = `${a.symbol}(${a.atomicNumber}) > ${b.symbol}(${b.atomicNumber}) → 一の人の先攻`;
+    } else if (b.atomicNumber > a.atomicNumber) {
+      txt = `${b.symbol}(${b.atomicNumber}) > ${a.symbol}(${a.atomicNumber}) → ${oppLabel}の先攻`;
+    } else {
+      txt = '同点 → ランダム決定';
+    }
+    resultEl.textContent = txt;
+  } else if (state.ceremonyDraw.bRevealed && state.ceremonyDraw.aRevealed) {
+    resultEl.textContent = '...';
+  } else {
+    resultEl.textContent = '';
   }
 }
 
