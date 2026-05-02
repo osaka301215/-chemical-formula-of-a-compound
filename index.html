@@ -389,8 +389,6 @@ body.bg-default #app { background: transparent; }
       <div class="modal-title">🏆 ランキング登録</div>
       <div class="modal-sub" id="reg-diff-label">ふつう</div>
       <div class="modal-score" id="reg-score">0</div>
-      <div style="font-size:13px;color:var(--text2);margin-bottom:8px;">登録名</div>
-      <input id="reg-name" type="text" maxlength="10" placeholder="名前（最大10文字）" class="text-input" style="margin-bottom:12px;" />
       <div class="btn-row">
         <button class="btn btn--primary" onclick="submitRanking()">登録する</button>
         <button class="btn" onclick="closeRegisterModal()">キャンセル</button>
@@ -814,10 +812,7 @@ async function loadRanking(diff){
       const num=i<3?medals[i]:(i+1);
       h+=`<div class="rank-row">
         <div class="rank-num ${numClass}">${num}</div>
-        <div>
-          <div class="rank-name">${e.name}</div>
-          <div class="rank-detail">${e.correct}問正解 (${e.rate}%) ｜ ${e.date}</div>
-        </div>
+        <div class="rank-detail">${e.correct}問正解 (${e.rate}%) ｜ ${e.date}</div>
         <div class="rank-score">${e.score.toLocaleString()}<span style="font-size:11px;color:var(--text3);font-weight:400;"> pts</span></div>
       </div>`;
     });
@@ -826,9 +821,6 @@ async function loadRanking(diff){
 }
 
 function showRegisterModal(){
-  // 前回入力した名前をデフォルト表示
-  const prev=document.getElementById('solo-name').value.trim()||S.name||'';
-  document.getElementById('reg-name').value=prev;
   document.getElementById('reg-score').textContent=S.score.toLocaleString()+' pts';
   document.getElementById('reg-diff-label').textContent=DIFF_LABEL[S.diff]||'ふつう';
   document.getElementById('reg-msg').textContent='';
@@ -840,16 +832,13 @@ function closeRegisterModal(){
 }
 
 async function submitRanking(){
-  const name=(document.getElementById('reg-name').value.trim()||'名無し').slice(0,10);
   const msgEl=document.getElementById('reg-msg');
   msgEl.textContent='登録中…';msgEl.style.color='var(--text2)';
   try{
     const rate=S.answered>0?Math.round(S.correct/S.answered*100):0;
-    const entry={name,score:S.score,correct:S.correct,rate,date:new Date().toLocaleDateString('ja-JP')};
-    // push で新規キー生成
+    const entry={score:S.score,correct:S.correct,rate,date:new Date().toLocaleDateString('ja-JP')};
     const newRef=fb().ref(fb().db,'ranking/'+S.diff+'/'+Date.now()+'_'+Math.random().toString(36).slice(2,7));
     await fb().set(newRef,entry);
-    // 10件を超えたら最低スコアを削除
     const snap=await fb().get(rankRef(S.diff));
     if(snap.exists()){
       const all=Object.entries(snap.val()).sort((a,b)=>b[1].score-a[1].score);
